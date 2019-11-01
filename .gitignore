@@ -1,0 +1,9 @@
+*.user
+
+# Visual Studio cache directory
+.vs/
+
+# Binary and Object outputs
+Bin/**
+Obj/**
+
