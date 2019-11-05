@@ -12,12 +12,4 @@ int main() {
 
     return EXIT_SUCCESS;
 
-    ///
-    //uint32_t extensionCount = 0;
-    //vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-    //std::cout << extensionCount << " extensions supported" << std::endl;
-    //glm::mat4 matrix;
-    //glm::vec4 vec;
-    //auto test = matrix * vec;
-
 }
