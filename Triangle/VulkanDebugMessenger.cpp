@@ -46,7 +46,7 @@ void VulkanDebugMessenger::Shutdown(VkInstance& vulkan) {
     PFN_vkDestroyDebugUtilsMessengerEXT func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
         vkGetInstanceProcAddr(vulkan, "vkDestroyDebugUtilsMessengerEXT")
     );
-    if (func != nullptr) {
+    if (nullptr!=m_messenger && func != nullptr ) {
         func(vulkan, m_messenger, nullptr);
     }
 }
