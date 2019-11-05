@@ -21,9 +21,18 @@
     <ClCompile Include="TriangleApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="VulkanDebugMessenger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TriangleApp.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Config.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanDebugMessenger.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
