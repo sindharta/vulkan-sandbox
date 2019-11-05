@@ -3,6 +3,9 @@
 #include <stdexcept> //std::runtime_error
 #include <iostream> //cout
 
+const std::vector<const char*> g_requiredVulkanLayers = {
+    "VK_LAYER_KHRONOS_validation"
+};
 
 //---------------------------------------------------------------------------------------------------------------------
 
@@ -60,16 +63,16 @@ void TriangleApp::InitVulkan() {
     InitVulkanInstance(appInfo, extensions);
 #endif
 
-    PickPhysicalDevice();
+    PickVulkanPhysicalDevice();
 
     const std::vector<VkQueueFlagBits> requiredQueueFlags = {VK_QUEUE_GRAPHICS_BIT, };    
     UpdateQueueFamilyPropertiesMapping(&requiredQueueFlags);
-    CreateLogicalDevice();
+    CreateVulkanLogicalDevice();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void TriangleApp::PickPhysicalDevice()  {
+void TriangleApp::PickVulkanPhysicalDevice()  {
     //Pick physical device
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(m_vulkanInstance, &deviceCount, nullptr);
@@ -81,7 +84,7 @@ void TriangleApp::PickPhysicalDevice()  {
     vkEnumeratePhysicalDevices(m_vulkanInstance, &deviceCount, devices.data());
 
     for (const VkPhysicalDevice& device : devices) {
-        GetVulkanQueueFamilyPropertiesInto(m_vulkanPhysicalDevice, &m_vulkanQueueFamilyProperties);
+        GetVulkanQueueFamilyPropertiesInto(device, &m_vulkanQueueFamilyProperties);
         if (IsVulkanDeviceValid(&m_vulkanQueueFamilyProperties, VK_QUEUE_GRAPHICS_BIT)) {
             m_vulkanPhysicalDevice = device;
             break;
@@ -96,11 +99,38 @@ void TriangleApp::PickPhysicalDevice()  {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void TriangleApp::CreateLogicalDevice()  {
+void TriangleApp::CreateVulkanLogicalDevice()  {
+    //Create device queue
     VkDeviceQueueCreateInfo queueCreateInfo = {};
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
     queueCreateInfo.queueFamilyIndex = m_vulkanQueueFamilyIndexMap[VK_QUEUE_GRAPHICS_BIT];
     queueCreateInfo.queueCount = 1;
+    float queuePriority = 1.0f;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+
+    //Device features
+    VkPhysicalDeviceFeatures deviceFeatures = {};
+
+    //Creating logical device
+    VkDeviceCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.pQueueCreateInfos = &queueCreateInfo;
+    createInfo.queueCreateInfoCount = 1;
+    createInfo.pEnabledFeatures = &deviceFeatures;
+    createInfo.enabledExtensionCount = 0;
+    createInfo.enabledLayerCount = 0;
+
+#ifdef ENABLE_VULKAN_DEBUG
+    //[Note-sin: 2019-11-5] These settings are ignored by newer implementations of Vulkan
+    createInfo.enabledLayerCount = static_cast<uint32_t>(g_requiredVulkanLayers.size());
+    createInfo.ppEnabledLayerNames = g_requiredVulkanLayers.data();
+#endif
+
+    if (VK_SUCCESS !=vkCreateDevice(m_vulkanPhysicalDevice, &createInfo, nullptr, &m_vulkanLogicalDevice) ) {
+        throw std::runtime_error("failed to create logical device!");
+    }
+
+    vkGetDeviceQueue(m_vulkanLogicalDevice, m_vulkanQueueFamilyIndexMap[VK_QUEUE_GRAPHICS_BIT], 0, &m_vulkanGraphicsQueue);
 
 }
 
@@ -109,10 +139,6 @@ void TriangleApp::CreateLogicalDevice()  {
 //---------------------------------------------------------------------------------------------------------------------
 void TriangleApp::InitVulkanDebugInstance(const VkApplicationInfo& appInfo, const std::vector<const char*>& extensions) 
 {
-    const std::vector<const char*> requiredLayers = {
-        "VK_LAYER_KHRONOS_validation"
-    };
-
     VkInstanceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
@@ -122,11 +148,11 @@ void TriangleApp::InitVulkanDebugInstance(const VkApplicationInfo& appInfo, cons
     const VkDebugUtilsMessengerCreateInfoEXT& debugCreateInfo 
         = static_cast<const VulkanDebugMessenger>(m_vulkanDebug).GetCreateInfo();
 
-    if (!CheckRequiredVulkanLayersAvailability(requiredLayers)) {
+    if (!CheckRequiredVulkanLayersAvailability(g_requiredVulkanLayers)) {
         throw std::runtime_error("Required Vulkan layers are requested, but some are not available!");
     }
-    createInfo.enabledLayerCount = static_cast<uint32_t>(requiredLayers.size());
-    createInfo.ppEnabledLayerNames = requiredLayers.data();
+    createInfo.enabledLayerCount = static_cast<uint32_t>(g_requiredVulkanLayers.size());
+    createInfo.ppEnabledLayerNames = g_requiredVulkanLayers.data();
 
     createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
 
@@ -227,8 +253,7 @@ void TriangleApp::GetVulkanQueueFamilyPropertiesInto(const VkPhysicalDevice& dev
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
 
-    queueFamilies->clear();
-    queueFamilies->reserve(queueFamilyCount);
+    queueFamilies->resize(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies->data());
 }
 
@@ -268,11 +293,16 @@ void TriangleApp::UpdateQueueFamilyPropertiesMapping(const std::vector<VkQueueFl
 //---------------------------------------------------------------------------------------------------------------------
 
 void TriangleApp::CleanUp() {
-#ifdef ENABLE_VULKAN_DEBUG
-    m_vulkanDebug.Shutdown(m_vulkanInstance);
-#endif
+
+    if (nullptr != m_vulkanLogicalDevice) {
+        vkDestroyDevice(m_vulkanLogicalDevice, nullptr);
+        m_vulkanLogicalDevice = nullptr;    
+    }
 
     if (nullptr != m_vulkanInstance) {
+#ifdef ENABLE_VULKAN_DEBUG
+        m_vulkanDebug.Shutdown(m_vulkanInstance);
+#endif
         vkDestroyInstance(m_vulkanInstance, nullptr);
         m_vulkanInstance = nullptr;
     }

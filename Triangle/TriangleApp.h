@@ -28,8 +28,8 @@ private:
 
 #endif //ENABLE_VULKAN_DEBUG
     
-    void PickPhysicalDevice();
-    void CreateLogicalDevice();
+    void PickVulkanPhysicalDevice();
+    void CreateVulkanLogicalDevice();
     void Loop(); 
     void PrintSupportedExtensions();
     void GetRequiredExtensionsInto(std::vector<const char*>* extensions);
@@ -38,9 +38,12 @@ private:
     void UpdateQueueFamilyPropertiesMapping(const std::vector<VkQueueFlagBits>* requiredQueueFlags);
 
     GLFWwindow* m_window;
-    VkInstance m_vulkanInstance;
-    VkPhysicalDevice m_vulkanPhysicalDevice;
-    VkDevice m_vulkanLogicalDevice;
+
+    VkInstance          m_vulkanInstance;
+    VkPhysicalDevice    m_vulkanPhysicalDevice;
+    VkDevice            m_vulkanLogicalDevice;
+    VkQueue             m_vulkanGraphicsQueue;
+
     std::vector<VkQueueFamilyProperties> m_vulkanQueueFamilyProperties;
     std::map<VkQueueFlagBits, uint32_t> m_vulkanQueueFamilyIndexMap;
 
