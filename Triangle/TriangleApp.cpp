@@ -6,7 +6,8 @@
 
 //---------------------------------------------------------------------------------------------------------------------
 
-TriangleApp::TriangleApp() : m_vulkanPhysicalDevice(VK_NULL_HANDLE), m_window(nullptr) {
+TriangleApp::TriangleApp() : m_vulkanPhysicalDevice(VK_NULL_HANDLE), m_vulkanLogicalDevice(nullptr), m_window(nullptr) 
+{
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -51,7 +52,7 @@ void TriangleApp::InitVulkan() {
 
     //Get required extension to create Vulkan with GLFW
     std::vector<const char*> extensions;
-    GetRequiredExtensionsInto(extensions);
+    GetRequiredExtensionsInto(&extensions);
 
 #ifdef ENABLE_VULKAN_DEBUG
     InitVulkanDebugInstance(appInfo, extensions);
@@ -59,6 +60,16 @@ void TriangleApp::InitVulkan() {
     InitVulkanInstance(appInfo, extensions);
 #endif
 
+    PickPhysicalDevice();
+
+    const std::vector<VkQueueFlagBits> requiredQueueFlags = {VK_QUEUE_GRAPHICS_BIT, };    
+    UpdateQueueFamilyPropertiesMapping(&requiredQueueFlags);
+    CreateLogicalDevice();
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void TriangleApp::PickPhysicalDevice()  {
     //Pick physical device
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(m_vulkanInstance, &deviceCount, nullptr);
@@ -70,7 +81,8 @@ void TriangleApp::InitVulkan() {
     vkEnumeratePhysicalDevices(m_vulkanInstance, &deviceCount, devices.data());
 
     for (const VkPhysicalDevice& device : devices) {
-        if (IsVulkanDeviceValid(device, VK_QUEUE_GRAPHICS_BIT)) {
+        GetVulkanQueueFamilyPropertiesInto(m_vulkanPhysicalDevice, &m_vulkanQueueFamilyProperties);
+        if (IsVulkanDeviceValid(&m_vulkanQueueFamilyProperties, VK_QUEUE_GRAPHICS_BIT)) {
             m_vulkanPhysicalDevice = device;
             break;
         }
@@ -79,6 +91,16 @@ void TriangleApp::InitVulkan() {
     if (m_vulkanPhysicalDevice == VK_NULL_HANDLE) {
         throw std::runtime_error("failed to find a suitable GPU!");
     }
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void TriangleApp::CreateLogicalDevice()  {
+    VkDeviceQueueCreateInfo queueCreateInfo = {};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = m_vulkanQueueFamilyIndexMap[VK_QUEUE_GRAPHICS_BIT];
+    queueCreateInfo.queueCount = 1;
 
 }
 
@@ -184,36 +206,63 @@ void TriangleApp::PrintSupportedExtensions() {
 }
 //---------------------------------------------------------------------------------------------------------------------
 
-void TriangleApp::GetRequiredExtensionsInto(std::vector<const char*>& extensions) {
+void TriangleApp::GetRequiredExtensionsInto(std::vector<const char*>* extensions) {
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    extensions.insert(extensions.end(), &glfwExtensions[0], &glfwExtensions[glfwExtensionCount]);
+    extensions->insert(extensions->end(), &glfwExtensions[0], &glfwExtensions[glfwExtensionCount]);
 
 #ifdef ENABLE_VULKAN_DEBUG
-    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    extensions->push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-
-bool TriangleApp::IsVulkanDeviceValid(const VkPhysicalDevice& device, const VkQueueFlags queueFlags) {
-
+void TriangleApp::GetVulkanQueueFamilyPropertiesInto(const VkPhysicalDevice& device, 
+                                                     std::vector<VkQueueFamilyProperties>* queueFamilies) 
+{
+    
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
 
-    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+    queueFamilies->clear();
+    queueFamilies->reserve(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies->data());
+}
 
-    for (const VkQueueFamilyProperties& queueFamily : queueFamilies) {
+//---------------------------------------------------------------------------------------------------------------------
+
+bool TriangleApp::IsVulkanDeviceValid(const std::vector<VkQueueFamilyProperties>* queueFamilies, 
+                                      const VkQueueFlags queueFlags) 
+{
+    for (const VkQueueFamilyProperties& queueFamily : *queueFamilies) {
         if ((queueFamily.queueFlags & queueFlags) == queueFlags) {
             return true;
         }
     }
-
     return false;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void TriangleApp::UpdateQueueFamilyPropertiesMapping(const std::vector<VkQueueFlagBits>* requiredQueueFlags) {
+
+    m_vulkanQueueFamilyIndexMap.clear();
+    
+    for (const VkQueueFlagBits& flag: *requiredQueueFlags) {
+
+        const uint32_t numProperties = static_cast<uint32_t>(m_vulkanQueueFamilyProperties.size());
+        for (uint32_t i = 0; i < numProperties; ++i) {
+            const VkQueueFamilyProperties& curQueueFamily = m_vulkanQueueFamilyProperties[i];
+            if (curQueueFamily.queueFlags & flag) {
+                m_vulkanQueueFamilyIndexMap[flag] = i;
+                break;
+            }
+        }
+    }
+
+
 }
 
 //---------------------------------------------------------------------------------------------------------------------
