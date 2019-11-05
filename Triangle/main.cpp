@@ -7,6 +7,7 @@ int main() {
         app.Run();
     } catch (const std::exception& e) {
         std::cerr << e.what() << std::endl;
+        app.CleanUp();
         return EXIT_FAILURE;
     }
 

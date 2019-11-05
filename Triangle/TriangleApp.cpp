@@ -3,7 +3,14 @@
 #include <stdexcept> //std::runtime_error
 #include <iostream> //cout
 
+
 //---------------------------------------------------------------------------------------------------------------------
+
+TriangleApp::TriangleApp() : m_vulkanPhysicalDevice(VK_NULL_HANDLE), m_window(nullptr) {
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 
 void TriangleApp::Run() {
     InitWindow();
@@ -51,6 +58,27 @@ void TriangleApp::InitVulkan() {
 #else
     InitVulkanInstance(appInfo, extensions);
 #endif
+
+    //Pick physical device
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(m_vulkanInstance, &deviceCount, nullptr);
+    if (deviceCount == 0) {
+        throw std::runtime_error("failed to find GPUs with Vulkan support!");
+    }
+
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    vkEnumeratePhysicalDevices(m_vulkanInstance, &deviceCount, devices.data());
+
+    for (const VkPhysicalDevice& device : devices) {
+        if (IsVulkanDeviceValid(device, VK_QUEUE_GRAPHICS_BIT)) {
+            m_vulkanPhysicalDevice = device;
+            break;
+        }
+    }
+
+    if (m_vulkanPhysicalDevice == VK_NULL_HANDLE) {
+        throw std::runtime_error("failed to find a suitable GPU!");
+    }
 
 }
 
@@ -171,12 +199,39 @@ void TriangleApp::GetRequiredExtensionsInto(std::vector<const char*>& extensions
 
 //---------------------------------------------------------------------------------------------------------------------
 
+bool TriangleApp::IsVulkanDeviceValid(const VkPhysicalDevice& device, const VkQueueFlags queueFlags) {
+
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+    for (const VkQueueFamilyProperties& queueFamily : queueFamilies) {
+        if ((queueFamily.queueFlags & queueFlags) == queueFlags) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 void TriangleApp::CleanUp() {
 #ifdef ENABLE_VULKAN_DEBUG
     m_vulkanDebug.Shutdown(m_vulkanInstance);
 #endif
-    
-    vkDestroyInstance(m_vulkanInstance, nullptr);
-    glfwDestroyWindow(m_window);
-    glfwTerminate();
+
+    if (nullptr != m_vulkanInstance) {
+        vkDestroyInstance(m_vulkanInstance, nullptr);
+        m_vulkanInstance = nullptr;
+    }
+
+    if (nullptr != m_window) {
+        glfwDestroyWindow(m_window);
+        glfwTerminate();
+        m_window = nullptr;
+    }
+   
 }

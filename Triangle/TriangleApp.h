@@ -10,7 +10,9 @@ struct GLFWwindow;
 
 class TriangleApp {
 public:
+    TriangleApp();
     void Run();
+    void CleanUp();
 
 private:
     void InitWindow();
@@ -26,12 +28,13 @@ private:
 #endif //ENABLE_VULKAN_DEBUG
 
     void Loop(); 
-    void CleanUp();
     void PrintSupportedExtensions();
     void GetRequiredExtensionsInto(std::vector<const char*>& extensions);
+    bool IsVulkanDeviceValid(const VkPhysicalDevice& device, const VkQueueFlags queueFlags);
 
     GLFWwindow* m_window;
     VkInstance m_vulkanInstance;
+    VkPhysicalDevice m_vulkanPhysicalDevice;
 
 
     const uint32_t WIDTH = 800;
