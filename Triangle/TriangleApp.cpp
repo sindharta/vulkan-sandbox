@@ -5,17 +5,6 @@
 
 //---------------------------------------------------------------------------------------------------------------------
 
-#ifdef ENABLE_VULKAN_VALIDATION_LAYERS
-
-const std::vector<const char*> g_validationLayers = {
-    "VK_LAYER_KHRONOS_validation"
-};
-
-#endif //NDEBUG
-
-
-//---------------------------------------------------------------------------------------------------------------------
-
 void TriangleApp::Run() {
     InitWindow();
     PrintSupportedExtensions();
@@ -57,6 +46,22 @@ void TriangleApp::InitVulkan() {
     std::vector<const char*> extensions;
     GetRequiredExtensionsInto(extensions);
 
+#ifdef ENABLE_VULKAN_DEBUG
+    InitVulkanDebugInstance(appInfo, extensions);
+#else
+    InitVulkanInstance(appInfo, extensions);
+#endif
+
+}
+
+#ifdef ENABLE_VULKAN_DEBUG
+
+//---------------------------------------------------------------------------------------------------------------------
+void TriangleApp::InitVulkanDebugInstance(const VkApplicationInfo& appInfo, const std::vector<const char*>& extensions) 
+{
+    const std::vector<const char*> requiredLayers = {
+        "VK_LAYER_KHRONOS_validation"
+    };
 
     VkInstanceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -64,27 +69,69 @@ void TriangleApp::InitVulkan() {
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
 
-#ifdef ENABLE_VULKAN_VALIDATION_LAYERS
-    if (!CheckValidationLayers()) {
-        throw std::runtime_error("validation layers requested, but not available!");
-    }
-    createInfo.enabledLayerCount = static_cast<uint32_t>(g_validationLayers.size());
-    createInfo.ppEnabledLayerNames = g_validationLayers.data();
-#else
-    createInfo.enabledLayerCount = 0;
-#endif //ENABLE_VULKAN_VALIDATION_LAYERS
-
-#ifdef ENABLE_VULKAN_DEBUG //Check Debug Utils before creating instance
     const VkDebugUtilsMessengerCreateInfoEXT& debugCreateInfo 
         = static_cast<const VulkanDebugMessenger>(m_vulkanDebug).GetCreateInfo();
+
+    if (!CheckRequiredVulkanLayersAvailability(requiredLayers)) {
+        throw std::runtime_error("Required Vulkan layers are requested, but some are not available!");
+    }
+    createInfo.enabledLayerCount = static_cast<uint32_t>(requiredLayers.size());
+    createInfo.ppEnabledLayerNames = requiredLayers.data();
+
     createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
-#endif //ENABLE_VULKAN_DEBUG
 
     if (vkCreateInstance(&createInfo, nullptr, &m_vulkanInstance) != VK_SUCCESS) {
         throw std::runtime_error("failed to create instance!");
     }
-
 }
+
+//---------------------------------------------------------------------------------------------------------------------
+
+bool TriangleApp::CheckRequiredVulkanLayersAvailability(const std::vector<const char*> requiredLayers) {
+    uint32_t layerCount;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+    for (const char* layerName : requiredLayers) {
+        bool layerFound = false;
+
+        for (const VkLayerProperties& layerProperties : availableLayers) {
+            if (strcmp(layerName, layerProperties.layerName) == 0) {
+                layerFound = true;
+                break;
+            }
+        }
+
+        if (!layerFound) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+#else
+
+//---------------------------------------------------------------------------------------------------------------------
+void TriangleApp::InitVulkanInstance(const VkApplicationInfo& appInfo, const std::vector<const char*>& extensions) {
+
+
+    VkInstanceCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    createInfo.pApplicationInfo = &appInfo;
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+    createInfo.ppEnabledExtensionNames = extensions.data();
+    createInfo.enabledLayerCount = 0;
+
+    if (vkCreateInstance(&createInfo, nullptr, &m_vulkanInstance) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create instance!");
+    }
+}
+
+#endif //ENABLE_VULKAN_DEBUG
+
 
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -107,34 +154,6 @@ void TriangleApp::PrintSupportedExtensions() {
         std::cout << "\t" << extension.extensionName << std::endl;
     }
 }
-//---------------------------------------------------------------------------------------------------------------------
-
-bool TriangleApp::CheckValidationLayers() {
-    uint32_t layerCount;
-    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-
-    std::vector<VkLayerProperties> availableLayers(layerCount);
-    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-
-    for (const char* layerName : g_validationLayers) {
-        bool layerFound = false;
-
-        for (const VkLayerProperties& layerProperties : availableLayers) {
-            if (strcmp(layerName, layerProperties.layerName) == 0) {
-                layerFound = true;
-                break;
-            }
-        }
-
-        if (!layerFound) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 //---------------------------------------------------------------------------------------------------------------------
 
 void TriangleApp::GetRequiredExtensionsInto(std::vector<const char*>& extensions) {

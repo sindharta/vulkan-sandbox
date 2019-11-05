@@ -15,17 +15,24 @@ public:
 private:
     void InitWindow();
     void InitVulkan();
+
+#ifdef ENABLE_VULKAN_DEBUG
+    void InitVulkanDebugInstance(const VkApplicationInfo& appInfo, const std::vector<const char*>& extensions);
+    bool CheckRequiredVulkanLayersAvailability(const std::vector<const char*> requiredLayers);
+    VulkanDebugMessenger m_vulkanDebug;
+#else
+    void InitVulkanInstance(const VkApplicationInfo& appInfo, const std::vector<const char*>& extensions);
+
+#endif //ENABLE_VULKAN_DEBUG
+
     void Loop(); 
     void CleanUp();
     void PrintSupportedExtensions();
-    bool CheckValidationLayers();
     void GetRequiredExtensionsInto(std::vector<const char*>& extensions);
 
     GLFWwindow* m_window;
     VkInstance m_vulkanInstance;
-#ifdef ENABLE_VULKAN_DEBUG
-    VulkanDebugMessenger m_vulkanDebug;
-#endif
+
 
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
