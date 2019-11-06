@@ -28,8 +28,10 @@ private:
 
 #endif //ENABLE_VULKAN_DEBUG
     
+    void CreateVulkanSurface();
     void PickVulkanPhysicalDevice();
     void CreateVulkanLogicalDevice();
+
     void Loop(); 
     void PrintSupportedExtensions();
     void GetRequiredExtensionsInto(std::vector<const char*>* extensions);
@@ -40,6 +42,7 @@ private:
     GLFWwindow* m_window;
 
     VkInstance          m_vulkanInstance;
+    VkSurfaceKHR        m_vulkanSurface;
     VkPhysicalDevice    m_vulkanPhysicalDevice;
     VkDevice            m_vulkanLogicalDevice;
     VkQueue             m_vulkanGraphicsQueue;

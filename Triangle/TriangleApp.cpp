@@ -3,13 +3,19 @@
 #include <stdexcept> //std::runtime_error
 #include <iostream> //cout
 
+
+VkAllocationCallbacks* g_allocator = nullptr; //Always use default allocator
+
 const std::vector<const char*> g_requiredVulkanLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
 
 //---------------------------------------------------------------------------------------------------------------------
 
-TriangleApp::TriangleApp() : m_vulkanPhysicalDevice(VK_NULL_HANDLE), m_vulkanLogicalDevice(nullptr), m_window(nullptr) 
+TriangleApp::TriangleApp() 
+    : m_vulkanInstance(nullptr), m_vulkanSurface(nullptr)
+    , m_vulkanPhysicalDevice(VK_NULL_HANDLE), m_vulkanLogicalDevice(nullptr), m_vulkanGraphicsQueue(nullptr)
+    , m_window(nullptr) 
 {
 }
 
@@ -57,6 +63,12 @@ void TriangleApp::InitVulkan() {
     std::vector<const char*> extensions;
     GetRequiredExtensionsInto(&extensions);
 
+    std::cout << "Extensions used for initializing: " << std::endl;
+    for (const char* extension : extensions) {
+        std::cout << "\t" << extension << std::endl;
+    }
+
+
 #ifdef ENABLE_VULKAN_DEBUG
     InitVulkanDebugInstance(appInfo, extensions);
 #else
@@ -68,6 +80,14 @@ void TriangleApp::InitVulkan() {
     const std::vector<VkQueueFlagBits> requiredQueueFlags = {VK_QUEUE_GRAPHICS_BIT, };    
     UpdateQueueFamilyPropertiesMapping(&requiredQueueFlags);
     CreateVulkanLogicalDevice();
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void TriangleApp::CreateVulkanSurface() {
+    if (glfwCreateWindowSurface(m_vulkanInstance, m_window, g_allocator, &m_vulkanSurface) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create window surface!");
+    }
+
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -300,6 +320,11 @@ void TriangleApp::CleanUp() {
     }
 
     if (nullptr != m_vulkanInstance) {
+
+        if (nullptr != m_vulkanSurface) {
+            vkDestroySurfaceKHR(m_vulkanInstance, m_vulkanSurface, nullptr);
+            m_vulkanSurface = nullptr;
+        }
 #ifdef ENABLE_VULKAN_DEBUG
         m_vulkanDebug.Shutdown(m_vulkanInstance);
 #endif
