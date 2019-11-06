@@ -38,8 +38,13 @@ private:
     void CreateVulkanImageViews();
     void CreateVulkanRenderPass();
     void CreateVulkanGraphicsPipeline();
+    void CreateVulkanFrameBuffers();
+    void CreateVulkanCommandPool();
+    void CreateVulkanCommandBuffers();
+    void CreateVulkanSemaphores();
 
     void Loop(); 
+    void DrawFrame();
     void PrintSupportedExtensions();
     void GetRequiredExtensionsInto(std::vector<const char*>* extensions);
     static void GetVulkanQueueFamilyPropertiesInto(const VkPhysicalDevice& device, std::vector<VkQueueFamilyProperties>* );
@@ -63,12 +68,17 @@ private:
     VkRenderPass        m_vulkanRenderPass;
     VkPipelineLayout    m_vulkanPipelineLayout;
     VkPipeline          m_vulkanGraphicsPipeline;
+    VkCommandPool       m_vulkanCommandPool;
+    std::vector<VkCommandBuffer> m_vulkanCommandBuffers;
+    VkSemaphore m_vulkanImageAvailableSemaphore;
+    VkSemaphore m_vulkanRenderFinishedSemaphore;
 
     //Swap chain
     std::vector<VkImage>        m_vulkanSwapChainImages;
     std::vector<VkImageView>    m_vulkanSwapChainImageViews;
     VkFormat                    m_vulkanSwapChainSurfaceFormat;
     VkExtent2D                  m_vulkanSwapChainExtent;
+    std::vector<VkFramebuffer>  m_vulkanSwapChainFramebuffers;
 
     //Queues
     QueueFamilyIndices  m_vulkanQueueFamilyIndices;

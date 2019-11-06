@@ -24,6 +24,7 @@ TriangleApp::TriangleApp()
     : m_vulkanInstance(nullptr), m_vulkanSurface(nullptr)
     , m_vulkanPhysicalDevice(VK_NULL_HANDLE), m_vulkanLogicalDevice(nullptr), m_vulkanGraphicsQueue(nullptr)
     , m_vulkanSwapChain(nullptr), m_vulkanRenderPass(nullptr), m_vulkanPipelineLayout(nullptr), m_vulkanGraphicsPipeline(nullptr)
+    , m_vulkanCommandPool(nullptr), m_vulkanImageAvailableSemaphore(nullptr), m_vulkanRenderFinishedSemaphore(nullptr)
     , m_window(nullptr) 
 {
 }
@@ -89,7 +90,14 @@ void TriangleApp::InitVulkan() {
     CreateVulkanLogicalDevice();
     CreateVulkanSwapChain();
     CreateVulkanImageViews();
+    CreateVulkanRenderPass();
+    CreateVulkanGraphicsPipeline();
+    CreateVulkanFrameBuffers();
+    CreateVulkanCommandPool();
+    CreateVulkanCommandBuffers();
+    CreateVulkanSemaphores();
 }
+
 
 //---------------------------------------------------------------------------------------------------------------------
 void TriangleApp::CreateVulkanSurface() {
@@ -298,12 +306,23 @@ void TriangleApp::CreateVulkanRenderPass() {
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
 
+
+    VkSubpassDependency dependency = {};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
     VkRenderPassCreateInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = 1;
     renderPassInfo.pAttachments = &colorAttachment;
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
 
     if (vkCreateRenderPass(m_vulkanLogicalDevice, &renderPassInfo, nullptr, &m_vulkanRenderPass) != VK_SUCCESS) {
         throw std::runtime_error("failed to create render pass!");
@@ -469,6 +488,109 @@ void TriangleApp::CreateVulkanGraphicsPipeline() {
     vkDestroyShaderModule(m_vulkanLogicalDevice, vertShaderModule, g_allocator);
 }
 
+//---------------------------------------------------------------------------------------------------------------------
+
+void TriangleApp::CreateVulkanFrameBuffers() {
+    const uint32_t numImageViews = static_cast<uint32_t>(m_vulkanSwapChainImageViews.size());
+    m_vulkanSwapChainFramebuffers.resize(numImageViews);
+    
+
+    for (size_t i = 0; i < numImageViews; i++) {
+        VkImageView attachments[] = {
+            m_vulkanSwapChainImageViews[i]
+        };
+
+        VkFramebufferCreateInfo framebufferInfo = {};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = m_vulkanRenderPass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.width = m_vulkanSwapChainExtent.width;
+        framebufferInfo.height = m_vulkanSwapChainExtent.height;
+        framebufferInfo.layers = 1;
+
+        if (vkCreateFramebuffer(m_vulkanLogicalDevice, &framebufferInfo, g_allocator, &m_vulkanSwapChainFramebuffers[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create framebuffer!");
+        }
+    }
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void TriangleApp::CreateVulkanCommandPool() {
+    VkCommandPoolCreateInfo poolInfo = {};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.queueFamilyIndex = m_vulkanQueueFamilyIndices.GetGraphicsIndex();
+    poolInfo.flags = 0; // Optional
+
+    if (vkCreateCommandPool(m_vulkanLogicalDevice, &poolInfo, g_allocator, &m_vulkanCommandPool) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create command pool!");
+    }
+}
+
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void TriangleApp::CreateVulkanCommandBuffers() {
+    uint32_t numFrameBuffers = static_cast<uint32_t>(m_vulkanSwapChainFramebuffers.size());
+    m_vulkanCommandBuffers.resize(numFrameBuffers);
+
+    VkCommandBufferAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = m_vulkanCommandPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = numFrameBuffers;
+
+    if (vkAllocateCommandBuffers(m_vulkanLogicalDevice, &allocInfo, m_vulkanCommandBuffers.data()) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate command buffers!");
+    }
+
+    //Starting command buffer recording
+    for (size_t i = 0; i < numFrameBuffers; ++i) {
+        VkCommandBufferBeginInfo beginInfo = {};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = 0; // Optional
+        beginInfo.pInheritanceInfo = nullptr; // Optional
+
+        if (vkBeginCommandBuffer(m_vulkanCommandBuffers[i], &beginInfo) != VK_SUCCESS) {
+            throw std::runtime_error("failed to begin recording command buffer!");
+        }
+
+       //Starting a render pass
+        VkRenderPassBeginInfo renderPassInfo = {};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = m_vulkanRenderPass;
+        renderPassInfo.framebuffer = m_vulkanSwapChainFramebuffers[i];
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = m_vulkanSwapChainExtent;
+
+        VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+        renderPassInfo.clearValueCount = 1;
+        renderPassInfo.pClearValues = &clearColor; //to be used by VK_ATTACHMENT_LOAD_OP_CLEAR, when creating RenderPass
+        vkCmdBeginRenderPass(m_vulkanCommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        vkCmdBindPipeline(m_vulkanCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_vulkanGraphicsPipeline);
+        vkCmdDraw(m_vulkanCommandBuffers[i], 3, 1, 0, 0);
+        vkCmdEndRenderPass(m_vulkanCommandBuffers[i]);
+        if (vkEndCommandBuffer(m_vulkanCommandBuffers[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to record command buffer!");
+        }
+    }
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void TriangleApp::CreateVulkanSemaphores() {
+    VkSemaphoreCreateInfo semaphoreInfo = {};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    if (vkCreateSemaphore(m_vulkanLogicalDevice, &semaphoreInfo, g_allocator, &m_vulkanImageAvailableSemaphore) != VK_SUCCESS ||
+        vkCreateSemaphore(m_vulkanLogicalDevice, &semaphoreInfo, g_allocator, &m_vulkanRenderFinishedSemaphore) != VK_SUCCESS) {
+
+        throw std::runtime_error("failed to create semaphores!");
+    }
+}
+
 
 #ifdef ENABLE_VULKAN_DEBUG
 
@@ -544,14 +666,59 @@ void TriangleApp::InitVulkanInstance(const VkApplicationInfo& appInfo, const std
 
 #endif //ENABLE_VULKAN_DEBUG
 
-
-
 //---------------------------------------------------------------------------------------------------------------------
 
 void TriangleApp::Loop() {
     while (!glfwWindowShouldClose(m_window)) {
         glfwPollEvents();
+        DrawFrame();
     }
+
+    //Wait until all vulkan operations are finished
+    vkDeviceWaitIdle(m_vulkanLogicalDevice);
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void TriangleApp::DrawFrame() {
+    //Acquire an image from the swap chain
+    uint32_t imageIndex;
+    vkAcquireNextImageKHR(m_vulkanLogicalDevice, m_vulkanSwapChain, UINT64_MAX, m_vulkanImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+    //Execute the command buffer with that image as attachment in the framebuffer
+    VkSemaphore waitSemaphores[] = {m_vulkanImageAvailableSemaphore};
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    VkSemaphore signalSemaphores[] = {m_vulkanRenderFinishedSemaphore};
+
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores; //Wait for the acquire process to finish
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &m_vulkanCommandBuffers[imageIndex];
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+
+    if (vkQueueSubmit(m_vulkanGraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+        throw std::runtime_error("failed to submit draw command buffer!");
+    }
+
+    //Return the image to the swap chain for presentation
+    VkPresentInfoKHR presentInfo = {};
+    VkSwapchainKHR swapChains[] = {m_vulkanSwapChain};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &imageIndex;
+    presentInfo.pResults = nullptr; // Optional
+    vkQueuePresentKHR(m_vulkanPresentationQueue, &presentInfo);
+
+    //Wait for work to be finished (non-optimal GPU usage)
+    vkQueueWaitIdle(m_vulkanPresentationQueue);
+
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -718,6 +885,27 @@ VkExtent2D  TriangleApp::PickVulkanSwapExtent(const VkSurfaceCapabilitiesKHR& ca
 //---------------------------------------------------------------------------------------------------------------------
 
 void TriangleApp::CleanUp() {
+
+    //Semaphores
+    if (nullptr != m_vulkanImageAvailableSemaphore) {
+        vkDestroySemaphore(m_vulkanLogicalDevice, m_vulkanImageAvailableSemaphore, g_allocator);
+        m_vulkanImageAvailableSemaphore = nullptr;
+    }
+
+    if (nullptr != m_vulkanRenderFinishedSemaphore) {
+        vkDestroySemaphore(m_vulkanLogicalDevice, m_vulkanRenderFinishedSemaphore, g_allocator);
+        m_vulkanRenderFinishedSemaphore = nullptr;
+    }
+
+    if (nullptr != m_vulkanCommandPool) {
+        vkDestroyCommandPool(m_vulkanLogicalDevice, m_vulkanCommandPool, g_allocator);
+        m_vulkanCommandPool = nullptr;
+    }
+
+    for (VkFramebuffer& framebuffer : m_vulkanSwapChainFramebuffers) {
+        vkDestroyFramebuffer(m_vulkanLogicalDevice, framebuffer, g_allocator);
+    }
+    m_vulkanSwapChainFramebuffers.clear();
 
     for (VkImageView& imageView : m_vulkanSwapChainImageViews) {
         vkDestroyImageView(m_vulkanLogicalDevice, imageView, g_allocator);
