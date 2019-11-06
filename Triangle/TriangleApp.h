@@ -36,6 +36,8 @@ private:
     void CreateVulkanLogicalDevice();
     void CreateVulkanSwapChain();
     void CreateVulkanImageViews();
+    void CreateVulkanRenderPass();
+    void CreateVulkanGraphicsPipeline();
 
     void Loop(); 
     void PrintSupportedExtensions();
@@ -58,6 +60,9 @@ private:
     VkPhysicalDevice    m_vulkanPhysicalDevice;
     VkDevice            m_vulkanLogicalDevice;
     VkSwapchainKHR      m_vulkanSwapChain;
+    VkRenderPass        m_vulkanRenderPass;
+    VkPipelineLayout    m_vulkanPipelineLayout;
+    VkPipeline          m_vulkanGraphicsPipeline;
 
     //Swap chain
     std::vector<VkImage>        m_vulkanSwapChainImages;
