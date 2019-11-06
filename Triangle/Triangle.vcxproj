@@ -160,6 +160,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="TriangleApp.cpp" />
+    <ClCompile Include="VulkanDebugMessenger.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Config.h" />
+    <ClInclude Include="PhysicalDeviceSurfaceInfo.h" />
+    <ClInclude Include="QueueFamilyIndices.h" />
+    <ClInclude Include="TriangleApp.h" />
+    <ClInclude Include="VulkanDebugMessenger.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
