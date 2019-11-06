@@ -35,6 +35,7 @@ private:
     void PickVulkanPhysicalDevice();
     void CreateVulkanLogicalDevice();
     void CreateVulkanSwapChain();
+    void CreateVulkanImageViews();
 
     void Loop(); 
     void PrintSupportedExtensions();
@@ -58,15 +59,17 @@ private:
     VkDevice            m_vulkanLogicalDevice;
     VkSwapchainKHR      m_vulkanSwapChain;
 
-    QueueFamilyIndices  m_vulkanQueueFamilyIndices;
+    //Swap chain
+    std::vector<VkImage>        m_vulkanSwapChainImages;
+    std::vector<VkImageView>    m_vulkanSwapChainImageViews;
+    VkFormat                    m_vulkanSwapChainSurfaceFormat;
+    VkExtent2D                  m_vulkanSwapChainExtent;
 
     //Queues
+    QueueFamilyIndices  m_vulkanQueueFamilyIndices;
     VkQueue             m_vulkanGraphicsQueue;
     VkQueue             m_vulkanPresentationQueue;
 
-    std::vector<VkImage> m_vulkanSwapChainImages;
-    VkFormat             m_vulkanSwapChainSurfaceFormat;
-    VkExtent2D           m_vulkanSwapChainExtent;
 
     static const uint32_t WIDTH = 800;
     static const uint32_t HEIGHT = 600;
