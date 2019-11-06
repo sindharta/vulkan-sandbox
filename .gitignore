@@ -7,3 +7,5 @@
 Bin/**
 Obj/**
 
+# Shader bytecodes
+*.spv
