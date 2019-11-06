@@ -161,6 +161,8 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="TriangleApp.cpp" />
+    <ClCompile Include="Utilities\FileUtility.cpp" />
+    <ClCompile Include="Utilities\ShaderUtility.cpp" />
     <ClCompile Include="VulkanDebugMessenger.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -168,7 +170,13 @@
     <ClInclude Include="PhysicalDeviceSurfaceInfo.h" />
     <ClInclude Include="QueueFamilyIndices.h" />
     <ClInclude Include="TriangleApp.h" />
+    <ClInclude Include="Utilities\FileUtility.h" />
+    <ClInclude Include="Utilities\ShaderUtility.h" />
     <ClInclude Include="VulkanDebugMessenger.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\Triangle.frag" />
+    <None Include="Shaders\Triangle.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
