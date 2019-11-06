@@ -49,6 +49,7 @@ private:
 
     //Queues
     VkQueue             m_vulkanGraphicsQueue;
+    VkQueue             m_vulkanPresentationQueue;
 
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;

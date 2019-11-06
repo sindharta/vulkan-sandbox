@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <stdexcept> //std::runtime_error
 #include <iostream> //cout
+#include <set> 
 
 
 VkAllocationCallbacks* g_allocator = nullptr; //Always use default allocator
@@ -119,13 +120,22 @@ void TriangleApp::PickVulkanPhysicalDevice()  {
 //---------------------------------------------------------------------------------------------------------------------
 
 void TriangleApp::CreateVulkanLogicalDevice()  {
-    //Create device queue
-    VkDeviceQueueCreateInfo queueCreateInfo = {};
-    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = m_vulkanQueueFamilyIndices.GetGraphicsIndex();
-    queueCreateInfo.queueCount = 1;
-    float queuePriority = 1.0f;
-    queueCreateInfo.pQueuePriorities = &queuePriority;
+
+    //Create device queue for all required queues
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    std::set<uint32_t> uniqueQueueFamilies = { 
+        m_vulkanQueueFamilyIndices.GetGraphicsIndex(), 
+        m_vulkanQueueFamilyIndices.GetPresentationIndex(),
+    };
+    const float queuePriority = 1.0f;
+    for (uint32_t queueFamily : uniqueQueueFamilies) {
+        VkDeviceQueueCreateInfo queueCreateInfo = {};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = queueFamily;
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
 
     //Device features
     VkPhysicalDeviceFeatures deviceFeatures = {};
@@ -133,8 +143,8 @@ void TriangleApp::CreateVulkanLogicalDevice()  {
     //Creating logical device
     VkDeviceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.pQueueCreateInfos = &queueCreateInfo;
-    createInfo.queueCreateInfoCount = 1;
+    createInfo.pQueueCreateInfos = queueCreateInfos.data();
+    createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pEnabledFeatures = &deviceFeatures;
     createInfo.enabledExtensionCount = 0;
     createInfo.enabledLayerCount = 0;
@@ -150,6 +160,7 @@ void TriangleApp::CreateVulkanLogicalDevice()  {
     }
 
     vkGetDeviceQueue(m_vulkanLogicalDevice, m_vulkanQueueFamilyIndices.GetGraphicsIndex(), 0, &m_vulkanGraphicsQueue);
+    vkGetDeviceQueue(m_vulkanLogicalDevice, m_vulkanQueueFamilyIndices.GetPresentationIndex(), 0, &m_vulkanPresentationQueue);
 
 }
 
@@ -309,6 +320,9 @@ QueueFamilyIndices TriangleApp::ExtractVulkanQueueFamilyIndices(const VkPhysical
 //---------------------------------------------------------------------------------------------------------------------
 
 void TriangleApp::CleanUp() {
+
+    m_vulkanGraphicsQueue = nullptr;
+    m_vulkanPresentationQueue = nullptr;
 
     if (nullptr != m_vulkanLogicalDevice) {
         vkDestroyDevice(m_vulkanLogicalDevice, nullptr);
