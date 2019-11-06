@@ -75,10 +75,8 @@ void TriangleApp::InitVulkan() {
     InitVulkanInstance(appInfo, extensions);
 #endif
 
+    CreateVulkanSurface();
     PickVulkanPhysicalDevice();
-
-    const std::vector<VkQueueFlagBits> requiredQueueFlags = {VK_QUEUE_GRAPHICS_BIT, };    
-    UpdateQueueFamilyPropertiesMapping(&requiredQueueFlags);
     CreateVulkanLogicalDevice();
 }
 
@@ -104,9 +102,10 @@ void TriangleApp::PickVulkanPhysicalDevice()  {
     vkEnumeratePhysicalDevices(m_vulkanInstance, &deviceCount, devices.data());
 
     for (const VkPhysicalDevice& device : devices) {
-        GetVulkanQueueFamilyPropertiesInto(device, &m_vulkanQueueFamilyProperties);
-        if (IsVulkanDeviceValid(&m_vulkanQueueFamilyProperties, VK_QUEUE_GRAPHICS_BIT)) {
+        QueueFamilyIndices curIndices = ExtractVulkanQueueFamilyIndices(device, m_vulkanSurface);
+        if (curIndices.IsComplete()) {
             m_vulkanPhysicalDevice = device;
+            m_vulkanQueueFamilyIndices = curIndices;
             break;
         }
     }
@@ -123,7 +122,7 @@ void TriangleApp::CreateVulkanLogicalDevice()  {
     //Create device queue
     VkDeviceQueueCreateInfo queueCreateInfo = {};
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = m_vulkanQueueFamilyIndexMap[VK_QUEUE_GRAPHICS_BIT];
+    queueCreateInfo.queueFamilyIndex = m_vulkanQueueFamilyIndices.GetGraphicsIndex();
     queueCreateInfo.queueCount = 1;
     float queuePriority = 1.0f;
     queueCreateInfo.pQueuePriorities = &queuePriority;
@@ -150,7 +149,7 @@ void TriangleApp::CreateVulkanLogicalDevice()  {
         throw std::runtime_error("failed to create logical device!");
     }
 
-    vkGetDeviceQueue(m_vulkanLogicalDevice, m_vulkanQueueFamilyIndexMap[VK_QUEUE_GRAPHICS_BIT], 0, &m_vulkanGraphicsQueue);
+    vkGetDeviceQueue(m_vulkanLogicalDevice, m_vulkanQueueFamilyIndices.GetGraphicsIndex(), 0, &m_vulkanGraphicsQueue);
 
 }
 
@@ -279,34 +278,31 @@ void TriangleApp::GetVulkanQueueFamilyPropertiesInto(const VkPhysicalDevice& dev
 
 //---------------------------------------------------------------------------------------------------------------------
 
-bool TriangleApp::IsVulkanDeviceValid(const std::vector<VkQueueFamilyProperties>* queueFamilies, 
-                                      const VkQueueFlags queueFlags) 
+QueueFamilyIndices TriangleApp::ExtractVulkanQueueFamilyIndices(const VkPhysicalDevice& device, 
+                                                                const VkSurfaceKHR& surface) 
 {
-    for (const VkQueueFamilyProperties& queueFamily : *queueFamilies) {
-        if ((queueFamily.queueFlags & queueFlags) == queueFlags) {
-            return true;
+    std::vector<VkQueueFamilyProperties> queueFamilyProperties;
+    GetVulkanQueueFamilyPropertiesInto(device, &queueFamilyProperties);
+
+    QueueFamilyIndices indices;
+    uint32_t queueFamilyCount = static_cast<uint32_t>(queueFamilyProperties.size());
+    for (uint32_t i = 0; i < queueFamilyCount && !indices.IsComplete(); ++i) {
+        const VkQueueFamilyProperties& curQueueFamily = queueFamilyProperties[i];
+        if (!indices.IsGraphicsIndexSet() && (curQueueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)  ) {
+            indices.SetGraphicsIndex(i);
         }
-    }
-    return false;
-}
 
-//---------------------------------------------------------------------------------------------------------------------
-void TriangleApp::UpdateQueueFamilyPropertiesMapping(const std::vector<VkQueueFlagBits>* requiredQueueFlags) {
-
-    m_vulkanQueueFamilyIndexMap.clear();
-    
-    for (const VkQueueFlagBits& flag: *requiredQueueFlags) {
-
-        const uint32_t numProperties = static_cast<uint32_t>(m_vulkanQueueFamilyProperties.size());
-        for (uint32_t i = 0; i < numProperties; ++i) {
-            const VkQueueFamilyProperties& curQueueFamily = m_vulkanQueueFamilyProperties[i];
-            if (curQueueFamily.queueFlags & flag) {
-                m_vulkanQueueFamilyIndexMap[flag] = i;
-                break;
+        if (!indices.IsPresentationIndexSet()) {
+            VkBool32 presentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+            if (presentSupport) {
+                indices.SetPresentationIndex(i);
             }
         }
+
     }
 
+    return indices;
 
 }
 

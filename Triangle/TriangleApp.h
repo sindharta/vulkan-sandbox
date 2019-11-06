@@ -6,6 +6,7 @@
 #include <map>
 #include "Config.h"
 #include "VulkanDebugMessenger.h"
+#include "QueueFamilyIndices.h"
 
 struct GLFWwindow;
 
@@ -35,9 +36,8 @@ private:
     void Loop(); 
     void PrintSupportedExtensions();
     void GetRequiredExtensionsInto(std::vector<const char*>* extensions);
-    void GetVulkanQueueFamilyPropertiesInto(const VkPhysicalDevice& device, std::vector<VkQueueFamilyProperties>* );
-    static bool IsVulkanDeviceValid(const std::vector<VkQueueFamilyProperties>*, const VkQueueFlags queueFlags);
-    void UpdateQueueFamilyPropertiesMapping(const std::vector<VkQueueFlagBits>* requiredQueueFlags);
+    static void GetVulkanQueueFamilyPropertiesInto(const VkPhysicalDevice& device, std::vector<VkQueueFamilyProperties>* );
+    static QueueFamilyIndices ExtractVulkanQueueFamilyIndices(const VkPhysicalDevice& device, const VkSurfaceKHR& surface);
 
     GLFWwindow* m_window;
 
@@ -45,12 +45,10 @@ private:
     VkSurfaceKHR        m_vulkanSurface;
     VkPhysicalDevice    m_vulkanPhysicalDevice;
     VkDevice            m_vulkanLogicalDevice;
+    QueueFamilyIndices  m_vulkanQueueFamilyIndices;
+
+    //Queues
     VkQueue             m_vulkanGraphicsQueue;
-
-    std::vector<VkQueueFamilyProperties> m_vulkanQueueFamilyProperties;
-    std::map<VkQueueFlagBits, uint32_t> m_vulkanQueueFamilyIndexMap;
-
-
 
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;

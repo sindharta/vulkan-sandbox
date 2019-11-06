@@ -165,6 +165,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Config.h" />
+    <ClInclude Include="QueueFamilyIndices.h" />
     <ClInclude Include="TriangleApp.h" />
     <ClInclude Include="VulkanDebugMessenger.h" />
   </ItemGroup>

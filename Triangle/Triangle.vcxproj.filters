@@ -35,5 +35,8 @@
     <ClInclude Include="VulkanDebugMessenger.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="QueueFamilyIndices.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
