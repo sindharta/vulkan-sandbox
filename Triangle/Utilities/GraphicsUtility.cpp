@@ -1,6 +1,6 @@
-#include "ShaderUtility.h"
+#include "GraphicsUtility.h"
 
-VkShaderModule ShaderUtility::CreateShaderModule(VkDevice* logicalDevice, const VkAllocationCallbacks* allocator, 
+VkShaderModule GraphicsUtility::CreateShaderModule(VkDevice* logicalDevice, const VkAllocationCallbacks* allocator, 
                                                  const std::vector<char>& code) {
 
     VkShaderModuleCreateInfo createInfo = {};

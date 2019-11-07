@@ -42,6 +42,7 @@ private:
     void CreateVulkanGraphicsPipeline();
     void CreateVulkanFrameBuffers();
     void CreateVulkanCommandPool();
+    void CreateVulkanVertexBuffers();
     void CreateVulkanCommandBuffers();
     void CreateVulkanSyncObjects();
 
@@ -73,6 +74,7 @@ private:
     VkPipelineLayout    m_vulkanPipelineLayout;
     VkPipeline          m_vulkanGraphicsPipeline;
     VkCommandPool       m_vulkanCommandPool;
+    VkBuffer            m_vulkanVB;
     std::vector<VkCommandBuffer> m_vulkanCommandBuffers;
     
     std::vector<VkSemaphore> m_vulkanImageAvailableSemaphores;

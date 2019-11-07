@@ -6,7 +6,8 @@
 #include <algorithm>  //max
 
 #include "Utilities/FileUtility.h"      //ReadFileInto()
-#include "Utilities/ShaderUtility.h"    //CreateShaderModule()    
+#include "Utilities/GraphicsUtility.h"    //CreateShaderModule()    
+#include "ColorVertex.h"    
 
 VkAllocationCallbacks* g_allocator = nullptr; //Always use default allocator
 
@@ -25,6 +26,11 @@ const std::vector<const char*> g_requiredDeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
+const std::vector<ColorVertex> vertices = {
+    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+};
 
 //---------------------------------------------------------------------------------------------------------------------
 static void WindowResizedCallback(GLFWwindow* window, int width, int height) {
@@ -39,6 +45,7 @@ TriangleApp::TriangleApp()
     , m_vulkanPhysicalDevice(VK_NULL_HANDLE), m_vulkanLogicalDevice(nullptr), m_vulkanGraphicsQueue(nullptr)
     , m_vulkanSwapChain(nullptr), m_vulkanRenderPass(nullptr), m_vulkanPipelineLayout(nullptr), m_vulkanGraphicsPipeline(nullptr)
     , m_vulkanCommandPool(nullptr), m_vulkanCurrentFrame(0), m_recreateSwapChainRequested(false)
+    , m_vulkanVB(nullptr)
     , m_window(nullptr) 
 {
 }
@@ -108,6 +115,7 @@ void TriangleApp::InitVulkan() {
     CreateVulkanGraphicsPipeline();
     CreateVulkanFrameBuffers();
     CreateVulkanCommandPool();
+    CreateVulkanVertexBuffers();
     CreateVulkanCommandBuffers();
     CreateVulkanSyncObjects();
 }
@@ -380,8 +388,8 @@ void TriangleApp::CreateVulkanGraphicsPipeline() {
     FileUtility::ReadFileInto("Shaders/Triangle.frag.spv", &fragShaderCode);
 
 
-    VkShaderModule vertShaderModule = ShaderUtility::CreateShaderModule(&m_vulkanLogicalDevice, g_allocator, vertShaderCode);
-    VkShaderModule fragShaderModule = ShaderUtility::CreateShaderModule(&m_vulkanLogicalDevice, g_allocator, fragShaderCode);
+    VkShaderModule vertShaderModule = GraphicsUtility::CreateShaderModule(&m_vulkanLogicalDevice, g_allocator, vertShaderCode);
+    VkShaderModule fragShaderModule = GraphicsUtility::CreateShaderModule(&m_vulkanLogicalDevice, g_allocator, fragShaderCode);
 
     //Vertex
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
@@ -401,12 +409,15 @@ void TriangleApp::CreateVulkanGraphicsPipeline() {
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
     //Vertex Input
+    VkVertexInputBindingDescription  bindingDescription = ColorVertex::GetBindingDescription();
+    std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = ColorVertex::GetAttributeDescriptions();
+
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription; 
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data(); 
 
     //Input Assembly
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
@@ -569,6 +580,19 @@ void TriangleApp::CreateVulkanCommandPool() {
 
     if (vkCreateCommandPool(m_vulkanLogicalDevice, &poolInfo, g_allocator, &m_vulkanCommandPool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create command pool!");
+    }
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void TriangleApp::CreateVulkanVertexBuffers() {
+    VkBufferCreateInfo bufferInfo = {};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = sizeof(vertices[0]) * vertices.size();
+    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; //only used by the graphics queue
+
+    if (vkCreateBuffer(m_vulkanLogicalDevice, &bufferInfo, nullptr, &m_vulkanVB) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create vertex buffer!");
     }
 }
 
@@ -988,6 +1012,11 @@ void TriangleApp::CleanUp() {
     m_vulkanInFlightFences.clear();
 
     CleanUpVulkanSwapChain();
+
+    if (nullptr != m_vulkanVB) {
+        vkDestroyBuffer(m_vulkanLogicalDevice, m_vulkanVB, g_allocator);
+        m_vulkanVB = nullptr;
+    }
 
     if (nullptr != m_vulkanCommandPool) {
         vkDestroyCommandPool(m_vulkanLogicalDevice, m_vulkanCommandPool, g_allocator);

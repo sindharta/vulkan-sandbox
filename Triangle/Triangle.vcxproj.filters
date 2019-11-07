@@ -33,7 +33,7 @@
     <ClCompile Include="Utilities\FileUtility.cpp">
       <Filter>Utilities</Filter>
     </ClCompile>
-    <ClCompile Include="Utilities\ShaderUtility.cpp">
+    <ClCompile Include="Utilities\GraphicsUtility.cpp">
       <Filter>Utilities</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,7 +56,10 @@
     <ClInclude Include="Utilities\FileUtility.h">
       <Filter>Utilities</Filter>
     </ClInclude>
-    <ClInclude Include="Utilities\ShaderUtility.h">
+    <ClInclude Include="ColorVertex.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\GraphicsUtility.h">
       <Filter>Utilities</Filter>
     </ClInclude>
   </ItemGroup>
