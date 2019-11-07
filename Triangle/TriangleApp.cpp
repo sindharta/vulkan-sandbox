@@ -14,7 +14,14 @@ const std::vector<const char*> g_requiredVulkanLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
 
-const std::vector<const char*> g_requiredLogicalDeviceExtensions = {
+//There are two types of extensions: instance and device
+const std::vector<const char*> g_requiredInstanceExtensions = {
+#ifdef ENABLE_VULKAN_DEBUG
+    VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+#endif
+};
+
+const std::vector<const char*> g_requiredDeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
@@ -122,7 +129,7 @@ void TriangleApp::PickVulkanPhysicalDevice()  {
 
     for (const VkPhysicalDevice& device : devices) {
         //Check extension
-        if (!CheckDeviceExtensionSupport(device, &g_requiredLogicalDeviceExtensions))
+        if (!CheckDeviceExtensionSupport(device, &g_requiredDeviceExtensions))
             continue;
 
         //Check swap chain support
@@ -130,7 +137,7 @@ void TriangleApp::PickVulkanPhysicalDevice()  {
         if (!deviceSurfaceInfo.IsSwapChainSupported())
             continue;
 
-        //Check required queue Family
+        //Check required queue family
         QueueFamilyIndices curIndices = QueryVulkanQueueFamilyIndices(device, m_vulkanSurface);
         if (curIndices.IsComplete()) {
             m_vulkanPhysicalDevice = device;
@@ -174,8 +181,8 @@ void TriangleApp::CreateVulkanLogicalDevice()  {
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pEnabledFeatures = &deviceFeatures;
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(g_requiredLogicalDeviceExtensions.size());
-    createInfo.ppEnabledExtensionNames = g_requiredLogicalDeviceExtensions.data();
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(g_requiredDeviceExtensions.size());
+    createInfo.ppEnabledExtensionNames = g_requiredDeviceExtensions.data();
     createInfo.enabledLayerCount =  0;
 
 #ifdef ENABLE_VULKAN_DEBUG
@@ -289,6 +296,8 @@ void TriangleApp::CreateVulkanImageViews() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
+//Renderpass is an orchestration of image data.  It helps the GPU better understand when weÅfll be drawing, 
+//what we'll be drawing to, and what it should do between render passes.
 void TriangleApp::CreateVulkanRenderPass() {
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = m_vulkanSwapChainSurfaceFormat;
@@ -493,6 +502,8 @@ void TriangleApp::CreateVulkanGraphicsPipeline() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
+//VkFrameBuffer is what maps the actual attachments (swap chain images) to a RenderPass. 
+//The attachment definition was defined when creating the RenderPass
 void TriangleApp::CreateVulkanFrameBuffers() {
     const uint32_t numImageViews = static_cast<uint32_t>(m_vulkanSwapChainImageViews.size());
     m_vulkanSwapChainFramebuffers.resize(numImageViews);
@@ -773,11 +784,8 @@ void TriangleApp::GetRequiredExtensionsInto(std::vector<const char*>* extensions
     const char** glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    extensions->insert(extensions->end(), &glfwExtensions[0], &glfwExtensions[glfwExtensionCount]);
-
-#ifdef ENABLE_VULKAN_DEBUG
-    extensions->push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
+    extensions->insert(extensions->end(), &glfwExtensions[0], &glfwExtensions[glfwExtensionCount]);   
+    extensions->insert(extensions->end(), g_requiredInstanceExtensions.begin(),g_requiredInstanceExtensions.end());
 
 }
 
