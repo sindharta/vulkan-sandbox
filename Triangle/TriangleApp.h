@@ -75,6 +75,7 @@ private:
     VkPipeline          m_vulkanGraphicsPipeline;
     VkCommandPool       m_vulkanCommandPool;
     VkBuffer            m_vulkanVB;
+    VkDeviceMemory      m_vulkanVBMemory;
     std::vector<VkCommandBuffer> m_vulkanCommandBuffers;
     
     std::vector<VkSemaphore> m_vulkanImageAvailableSemaphores;

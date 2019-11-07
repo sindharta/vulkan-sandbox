@@ -45,7 +45,7 @@ TriangleApp::TriangleApp()
     , m_vulkanPhysicalDevice(VK_NULL_HANDLE), m_vulkanLogicalDevice(nullptr), m_vulkanGraphicsQueue(nullptr)
     , m_vulkanSwapChain(nullptr), m_vulkanRenderPass(nullptr), m_vulkanPipelineLayout(nullptr), m_vulkanGraphicsPipeline(nullptr)
     , m_vulkanCommandPool(nullptr), m_vulkanCurrentFrame(0), m_recreateSwapChainRequested(false)
-    , m_vulkanVB(nullptr)
+    , m_vulkanVB(nullptr), m_vulkanVBMemory(nullptr)
     , m_window(nullptr) 
 {
 }
@@ -388,8 +388,8 @@ void TriangleApp::CreateVulkanGraphicsPipeline() {
     FileUtility::ReadFileInto("Shaders/Triangle.frag.spv", &fragShaderCode);
 
 
-    VkShaderModule vertShaderModule = GraphicsUtility::CreateShaderModule(&m_vulkanLogicalDevice, g_allocator, vertShaderCode);
-    VkShaderModule fragShaderModule = GraphicsUtility::CreateShaderModule(&m_vulkanLogicalDevice, g_allocator, fragShaderCode);
+    VkShaderModule vertShaderModule = GraphicsUtility::CreateShaderModule(m_vulkanLogicalDevice, g_allocator, vertShaderCode);
+    VkShaderModule fragShaderModule = GraphicsUtility::CreateShaderModule(m_vulkanLogicalDevice, g_allocator, fragShaderCode);
 
     //Vertex
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
@@ -591,9 +591,34 @@ void TriangleApp::CreateVulkanVertexBuffers() {
     bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; //only used by the graphics queue
 
-    if (vkCreateBuffer(m_vulkanLogicalDevice, &bufferInfo, nullptr, &m_vulkanVB) != VK_SUCCESS) {
+    if (vkCreateBuffer(m_vulkanLogicalDevice, &bufferInfo, g_allocator, &m_vulkanVB) != VK_SUCCESS) {
         throw std::runtime_error("failed to create vertex buffer!");
     }
+
+    //Get the memory requirement of the VB
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(m_vulkanLogicalDevice, m_vulkanVB, &memRequirements);
+
+    //VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT: to write from the CPU.
+    //VK_MEMORY_PROPERTY_HOST_COHERENT_BIT: ensure that the driver is aware of our copying. Alternative: use flush
+    VkMemoryAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex = GraphicsUtility::FindMemoryType(m_vulkanPhysicalDevice, 
+        memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+    );
+    if (vkAllocateMemory(m_vulkanLogicalDevice, &allocInfo, g_allocator, &m_vulkanVBMemory) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate vertex buffer memory!");
+    }
+
+    vkBindBufferMemory(m_vulkanLogicalDevice, m_vulkanVB, m_vulkanVBMemory, 0);
+
+    //Filling Vertex Buffer
+    void* data = nullptr;
+    vkMapMemory(m_vulkanLogicalDevice, m_vulkanVBMemory, 0, bufferInfo.size, 0, &data);
+    memcpy(data, vertices.data(), (size_t) bufferInfo.size);
+    vkUnmapMemory(m_vulkanLogicalDevice, m_vulkanVBMemory);
+
 }
 
 
@@ -638,7 +663,13 @@ void TriangleApp::CreateVulkanCommandBuffers() {
         vkCmdBeginRenderPass(m_vulkanCommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdBindPipeline(m_vulkanCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_vulkanGraphicsPipeline);
-        vkCmdDraw(m_vulkanCommandBuffers[i], 3, 1, 0, 0);
+
+        //Bind vertex buffers
+        VkBuffer vertexBuffers[] = {m_vulkanVB};
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(m_vulkanCommandBuffers[i], 0, 1, vertexBuffers, offsets);
+
+        vkCmdDraw(m_vulkanCommandBuffers[i], static_cast<uint32_t>(vertices.size()), 1, 0, 0);
         vkCmdEndRenderPass(m_vulkanCommandBuffers[i]);
         if (vkEndCommandBuffer(m_vulkanCommandBuffers[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
@@ -1013,10 +1044,16 @@ void TriangleApp::CleanUp() {
 
     CleanUpVulkanSwapChain();
 
+    //Vertex Buffers
     if (nullptr != m_vulkanVB) {
         vkDestroyBuffer(m_vulkanLogicalDevice, m_vulkanVB, g_allocator);
         m_vulkanVB = nullptr;
     }
+    if (nullptr != m_vulkanVBMemory) {
+        vkFreeMemory(m_vulkanLogicalDevice, m_vulkanVBMemory, g_allocator);
+        m_vulkanVBMemory = nullptr;
+    }
+
 
     if (nullptr != m_vulkanCommandPool) {
         vkDestroyCommandPool(m_vulkanLogicalDevice, m_vulkanCommandPool, g_allocator);
