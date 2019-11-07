@@ -6,7 +6,8 @@
 #include <algorithm>  //max
 
 #include "Utilities/FileUtility.h"      //ReadFileInto()
-#include "Utilities/ShaderUtility.h"    //CreateShaderModule()    
+#include "Utilities/GraphicsUtility.h"    //CreateShaderModule()    
+#include "ColorVertex.h"    
 
 VkAllocationCallbacks* g_allocator = nullptr; //Always use default allocator
 
@@ -25,6 +26,16 @@ const std::vector<const char*> g_requiredDeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
+const std::vector<ColorVertex> g_vertices = {
+    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+};
+
+const std::vector<uint16_t> g_indices = {
+    0, 1, 2, 2, 3, 0
+};
 
 //---------------------------------------------------------------------------------------------------------------------
 static void WindowResizedCallback(GLFWwindow* window, int width, int height) {
@@ -39,6 +50,8 @@ TriangleApp::TriangleApp()
     , m_vulkanPhysicalDevice(VK_NULL_HANDLE), m_vulkanLogicalDevice(nullptr), m_vulkanGraphicsQueue(nullptr)
     , m_vulkanSwapChain(nullptr), m_vulkanRenderPass(nullptr), m_vulkanPipelineLayout(nullptr), m_vulkanGraphicsPipeline(nullptr)
     , m_vulkanCommandPool(nullptr), m_vulkanCurrentFrame(0), m_recreateSwapChainRequested(false)
+    , m_vulkanVB(VK_NULL_HANDLE), m_vulkanVBMemory(VK_NULL_HANDLE)
+    , m_vulkanIB(VK_NULL_HANDLE), m_vulkanIBMemory(VK_NULL_HANDLE)
     , m_window(nullptr) 
 {
 }
@@ -108,6 +121,8 @@ void TriangleApp::InitVulkan() {
     CreateVulkanGraphicsPipeline();
     CreateVulkanFrameBuffers();
     CreateVulkanCommandPool();
+    CreateVulkanVertexBuffer();
+    CreateVulkanIndexBuffer();
     CreateVulkanCommandBuffers();
     CreateVulkanSyncObjects();
 }
@@ -380,8 +395,8 @@ void TriangleApp::CreateVulkanGraphicsPipeline() {
     FileUtility::ReadFileInto("Shaders/Triangle.frag.spv", &fragShaderCode);
 
 
-    VkShaderModule vertShaderModule = ShaderUtility::CreateShaderModule(&m_vulkanLogicalDevice, g_allocator, vertShaderCode);
-    VkShaderModule fragShaderModule = ShaderUtility::CreateShaderModule(&m_vulkanLogicalDevice, g_allocator, fragShaderCode);
+    VkShaderModule vertShaderModule = GraphicsUtility::CreateShaderModule(m_vulkanLogicalDevice, g_allocator, vertShaderCode);
+    VkShaderModule fragShaderModule = GraphicsUtility::CreateShaderModule(m_vulkanLogicalDevice, g_allocator, fragShaderCode);
 
     //Vertex
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
@@ -401,12 +416,15 @@ void TriangleApp::CreateVulkanGraphicsPipeline() {
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
     //Vertex Input
+    VkVertexInputBindingDescription  bindingDescription = ColorVertex::GetBindingDescription();
+    std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = ColorVertex::GetAttributeDescriptions();
+
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription; 
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data(); 
 
     //Input Assembly
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
@@ -572,11 +590,79 @@ void TriangleApp::CreateVulkanCommandPool() {
     }
 }
 
+//---------------------------------------------------------------------------------------------------------------------
+void TriangleApp::CreateVulkanVertexBuffer() {
+
+    const VkDeviceSize bufferSize = sizeof(g_vertices[0]) * g_vertices.size();
+
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+
+    //VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT: to write from the CPU.
+    //VK_MEMORY_PROPERTY_HOST_COHERENT_BIT: ensure that the driver is aware of our copying. Alternative: use flush
+    GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice, bufferSize, 
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+        &stagingBuffer, &stagingBufferMemory);
+
+    //Filling Vertex Buffer
+    void* data = nullptr;
+    vkMapMemory(m_vulkanLogicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, g_vertices.data(), bufferSize);
+    vkUnmapMemory(m_vulkanLogicalDevice, stagingBufferMemory);
+
+    //VK_BUFFER_USAGE_TRANSFER_DST_BIT: destination in a memory transfer
+    GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice, bufferSize, 
+                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
+                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+                 &m_vulkanVB, &m_vulkanVBMemory);
+
+    //Copy buffer
+    GraphicsUtility::CopyBuffer(m_vulkanLogicalDevice, m_vulkanCommandPool, m_vulkanGraphicsQueue,
+        stagingBuffer, m_vulkanVB,bufferSize
+    );
+
+    vkDestroyBuffer(m_vulkanLogicalDevice, stagingBuffer, g_allocator);
+    vkFreeMemory(m_vulkanLogicalDevice, stagingBufferMemory, g_allocator);
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void TriangleApp::CreateVulkanIndexBuffer() {
+    const VkDeviceSize bufferSize = sizeof(g_indices[0]) * g_indices.size();
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice, bufferSize, 
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+        &stagingBuffer, &stagingBufferMemory
+    );
+
+    void* data;
+    vkMapMemory(m_vulkanLogicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, g_indices.data(), (size_t) bufferSize);
+    vkUnmapMemory(m_vulkanLogicalDevice, stagingBufferMemory);
+
+    GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice,bufferSize, 
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_vulkanIB, &m_vulkanIBMemory);
+
+    //Copy buffer
+    GraphicsUtility::CopyBuffer(m_vulkanLogicalDevice, m_vulkanCommandPool, m_vulkanGraphicsQueue,
+        stagingBuffer, m_vulkanIB,bufferSize
+    );
+
+    vkDestroyBuffer(m_vulkanLogicalDevice, stagingBuffer, g_allocator);
+    vkFreeMemory(m_vulkanLogicalDevice, stagingBufferMemory, g_allocator);
+}
 
 //---------------------------------------------------------------------------------------------------------------------
 
 void TriangleApp::CreateVulkanCommandBuffers() {
-    uint32_t numFrameBuffers = static_cast<uint32_t>(m_vulkanSwapChainFramebuffers.size());
+    const uint32_t numFrameBuffers = static_cast<uint32_t>(m_vulkanSwapChainFramebuffers.size());
     m_vulkanCommandBuffers.resize(numFrameBuffers);
 
     VkCommandBufferAllocateInfo allocInfo = {};
@@ -614,7 +700,14 @@ void TriangleApp::CreateVulkanCommandBuffers() {
         vkCmdBeginRenderPass(m_vulkanCommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdBindPipeline(m_vulkanCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_vulkanGraphicsPipeline);
-        vkCmdDraw(m_vulkanCommandBuffers[i], 3, 1, 0, 0);
+
+        //Bind vertex and index buffers
+        VkBuffer vertexBuffers[] = {m_vulkanVB};
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(m_vulkanCommandBuffers[i], 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(m_vulkanCommandBuffers[i], m_vulkanIB, 0, VK_INDEX_TYPE_UINT16);
+
+        vkCmdDrawIndexed(m_vulkanCommandBuffers[i], static_cast<uint32_t>(g_indices.size()), 1, 0, 0, 0);
         vkCmdEndRenderPass(m_vulkanCommandBuffers[i]);
         if (vkEndCommandBuffer(m_vulkanCommandBuffers[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
@@ -988,6 +1081,26 @@ void TriangleApp::CleanUp() {
     m_vulkanInFlightFences.clear();
 
     CleanUpVulkanSwapChain();
+
+    //Vertex Buffers
+    if (VK_NULL_HANDLE != m_vulkanVB) {
+        vkDestroyBuffer(m_vulkanLogicalDevice, m_vulkanVB, g_allocator);
+        m_vulkanVB = VK_NULL_HANDLE;
+    }
+    if (VK_NULL_HANDLE != m_vulkanVBMemory) {
+        vkFreeMemory(m_vulkanLogicalDevice, m_vulkanVBMemory, g_allocator);
+        m_vulkanVBMemory = VK_NULL_HANDLE;
+    }
+
+    //Index Buffers
+    if (VK_NULL_HANDLE != m_vulkanIB) {
+        vkDestroyBuffer(m_vulkanLogicalDevice, m_vulkanIB, g_allocator);
+        m_vulkanVB = VK_NULL_HANDLE;
+    }
+    if (VK_NULL_HANDLE != m_vulkanIBMemory) {
+        vkFreeMemory(m_vulkanLogicalDevice, m_vulkanIBMemory, g_allocator);
+        m_vulkanIBMemory = VK_NULL_HANDLE;
+    }
 
     if (nullptr != m_vulkanCommandPool) {
         vkDestroyCommandPool(m_vulkanLogicalDevice, m_vulkanCommandPool, g_allocator);

@@ -162,16 +162,17 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="TriangleApp.cpp" />
     <ClCompile Include="Utilities\FileUtility.cpp" />
-    <ClCompile Include="Utilities\ShaderUtility.cpp" />
+    <ClCompile Include="Utilities\GraphicsUtility.cpp" />
     <ClCompile Include="VulkanDebugMessenger.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ColorVertex.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="PhysicalDeviceSurfaceInfo.h" />
     <ClInclude Include="QueueFamilyIndices.h" />
     <ClInclude Include="TriangleApp.h" />
     <ClInclude Include="Utilities\FileUtility.h" />
-    <ClInclude Include="Utilities\ShaderUtility.h" />
+    <ClInclude Include="Utilities\GraphicsUtility.h" />
     <ClInclude Include="VulkanDebugMessenger.h" />
   </ItemGroup>
   <ItemGroup>
