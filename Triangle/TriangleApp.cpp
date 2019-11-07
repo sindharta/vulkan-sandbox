@@ -14,7 +14,14 @@ const std::vector<const char*> g_requiredVulkanLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
 
-const std::vector<const char*> g_requiredLogicalDeviceExtensions = {
+//There are two types of extensions: instance and device
+const std::vector<const char*> g_requiredInstanceExtensions = {
+#ifdef ENABLE_VULKAN_DEBUG
+    VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+#endif
+};
+
+const std::vector<const char*> g_requiredDeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
@@ -24,7 +31,7 @@ TriangleApp::TriangleApp()
     : m_vulkanInstance(nullptr), m_vulkanSurface(nullptr)
     , m_vulkanPhysicalDevice(VK_NULL_HANDLE), m_vulkanLogicalDevice(nullptr), m_vulkanGraphicsQueue(nullptr)
     , m_vulkanSwapChain(nullptr), m_vulkanRenderPass(nullptr), m_vulkanPipelineLayout(nullptr), m_vulkanGraphicsPipeline(nullptr)
-    , m_vulkanCommandPool(nullptr), m_vulkanImageAvailableSemaphore(nullptr), m_vulkanRenderFinishedSemaphore(nullptr)
+    , m_vulkanCommandPool(nullptr), m_vulkanCurrentFrame(0)
     , m_window(nullptr) 
 {
 }
@@ -95,7 +102,7 @@ void TriangleApp::InitVulkan() {
     CreateVulkanFrameBuffers();
     CreateVulkanCommandPool();
     CreateVulkanCommandBuffers();
-    CreateVulkanSemaphores();
+    CreateVulkanSyncObjects();
 }
 
 
@@ -122,7 +129,7 @@ void TriangleApp::PickVulkanPhysicalDevice()  {
 
     for (const VkPhysicalDevice& device : devices) {
         //Check extension
-        if (!CheckDeviceExtensionSupport(device, &g_requiredLogicalDeviceExtensions))
+        if (!CheckDeviceExtensionSupport(device, &g_requiredDeviceExtensions))
             continue;
 
         //Check swap chain support
@@ -130,7 +137,7 @@ void TriangleApp::PickVulkanPhysicalDevice()  {
         if (!deviceSurfaceInfo.IsSwapChainSupported())
             continue;
 
-        //Check required queue Family
+        //Check required queue family
         QueueFamilyIndices curIndices = QueryVulkanQueueFamilyIndices(device, m_vulkanSurface);
         if (curIndices.IsComplete()) {
             m_vulkanPhysicalDevice = device;
@@ -174,8 +181,8 @@ void TriangleApp::CreateVulkanLogicalDevice()  {
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pEnabledFeatures = &deviceFeatures;
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(g_requiredLogicalDeviceExtensions.size());
-    createInfo.ppEnabledExtensionNames = g_requiredLogicalDeviceExtensions.data();
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(g_requiredDeviceExtensions.size());
+    createInfo.ppEnabledExtensionNames = g_requiredDeviceExtensions.data();
     createInfo.enabledLayerCount =  0;
 
 #ifdef ENABLE_VULKAN_DEBUG
@@ -256,6 +263,9 @@ void TriangleApp::CreateVulkanImageViews() {
     vkGetSwapchainImagesKHR(m_vulkanLogicalDevice, m_vulkanSwapChain, &imageCount, nullptr);
     m_vulkanSwapChainImages.resize(imageCount);
     vkGetSwapchainImagesKHR(m_vulkanLogicalDevice, m_vulkanSwapChain, &imageCount, m_vulkanSwapChainImages.data());
+    std::cout << "Swap Chain Image Count: " << imageCount << std::endl;
+    std::cout << "Max Frames in Flight: " << MAX_FRAMES_IN_FLIGHT << std::endl;
+
 
     uint32_t numImages = static_cast<uint32_t>(m_vulkanSwapChainImages.size());
     m_vulkanSwapChainImageViews.resize(numImages);
@@ -286,6 +296,8 @@ void TriangleApp::CreateVulkanImageViews() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
+//Renderpass is an orchestration of image data.  It helps the GPU better understand when weÅfll be drawing, 
+//what we'll be drawing to, and what it should do between render passes.
 void TriangleApp::CreateVulkanRenderPass() {
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = m_vulkanSwapChainSurfaceFormat;
@@ -490,6 +502,8 @@ void TriangleApp::CreateVulkanGraphicsPipeline() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
+//VkFrameBuffer is what maps the actual attachments (swap chain images) to a RenderPass. 
+//The attachment definition was defined when creating the RenderPass
 void TriangleApp::CreateVulkanFrameBuffers() {
     const uint32_t numImageViews = static_cast<uint32_t>(m_vulkanSwapChainImageViews.size());
     m_vulkanSwapChainFramebuffers.resize(numImageViews);
@@ -580,14 +594,28 @@ void TriangleApp::CreateVulkanCommandBuffers() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void TriangleApp::CreateVulkanSemaphores() {
+void TriangleApp::CreateVulkanSyncObjects() {
+
+    m_vulkanImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    m_vulkanRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    m_vulkanInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+    m_vulkanImagesInFlight.resize(m_vulkanSwapChainImages.size(), VK_NULL_HANDLE);
+
     VkSemaphoreCreateInfo semaphoreInfo = {};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    if (vkCreateSemaphore(m_vulkanLogicalDevice, &semaphoreInfo, g_allocator, &m_vulkanImageAvailableSemaphore) != VK_SUCCESS ||
-        vkCreateSemaphore(m_vulkanLogicalDevice, &semaphoreInfo, g_allocator, &m_vulkanRenderFinishedSemaphore) != VK_SUCCESS) {
+    VkFenceCreateInfo fenceInfo = {};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; //Don't make the GPU wait when rendering the first frame
 
-        throw std::runtime_error("failed to create semaphores!");
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        if (vkCreateSemaphore(m_vulkanLogicalDevice, &semaphoreInfo, g_allocator, &m_vulkanImageAvailableSemaphores[i]) != VK_SUCCESS 
+            || vkCreateSemaphore(m_vulkanLogicalDevice, &semaphoreInfo, g_allocator, &m_vulkanRenderFinishedSemaphores[i]) != VK_SUCCESS 
+            || vkCreateFence(m_vulkanLogicalDevice, &fenceInfo, g_allocator, &m_vulkanInFlightFences[i]) != VK_SUCCESS
+        )
+        {
+            throw std::runtime_error("failed to create synchronization objects for a frame!");
+        }
     }
 }
 
@@ -681,14 +709,27 @@ void TriangleApp::Loop() {
 //---------------------------------------------------------------------------------------------------------------------
 
 void TriangleApp::DrawFrame() {
+    //The fence will sync CPU - GPU. Make sure that we are not processing the same frame in flight
+    vkWaitForFences(m_vulkanLogicalDevice, 1, &m_vulkanInFlightFences[m_vulkanCurrentFrame], VK_TRUE, UINT64_MAX);
+
     //Acquire an image from the swap chain
+    VkSemaphore curImageAvailableSemaphore = m_vulkanImageAvailableSemaphores[m_vulkanCurrentFrame];
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(m_vulkanLogicalDevice, m_vulkanSwapChain, UINT64_MAX, m_vulkanImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+    vkAcquireNextImageKHR(m_vulkanLogicalDevice, m_vulkanSwapChain, UINT64_MAX, curImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+    //Check if we are about to draw to an image from the swap chain that is still in flight.
+    //This can happen for example if MAX_FRAMES_IN_FLIGHT >= the number of images in the swap chain.
+    if (m_vulkanImagesInFlight[imageIndex] != VK_NULL_HANDLE) {
+        vkWaitForFences(m_vulkanLogicalDevice, 1, &m_vulkanImagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
+    }
+    m_vulkanImagesInFlight[imageIndex] = m_vulkanInFlightFences[m_vulkanCurrentFrame];
+
+    //Semaphores: GPU-GPU synchronization. No need to reset
+    VkSemaphore waitSemaphores[] = {curImageAvailableSemaphore};
+    VkSemaphore signalSemaphores[] = {m_vulkanRenderFinishedSemaphores[m_vulkanCurrentFrame]};
 
     //Execute the command buffer with that image as attachment in the framebuffer
-    VkSemaphore waitSemaphores[] = {m_vulkanImageAvailableSemaphore};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    VkSemaphore signalSemaphores[] = {m_vulkanRenderFinishedSemaphore};
 
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -700,11 +741,14 @@ void TriangleApp::DrawFrame() {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (vkQueueSubmit(m_vulkanGraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+    //Reset fence for syncing sync CPU - GPU
+    vkResetFences(m_vulkanLogicalDevice, 1, &m_vulkanInFlightFences[m_vulkanCurrentFrame]);
+
+    if (vkQueueSubmit(m_vulkanGraphicsQueue, 1, &submitInfo, m_vulkanInFlightFences[m_vulkanCurrentFrame]) != VK_SUCCESS) {
         throw std::runtime_error("failed to submit draw command buffer!");
     }
 
-    //Return the image to the swap chain for presentation
+    //Return the image to the swap chain for presentation. Wait for rendering to be finished
     VkPresentInfoKHR presentInfo = {};
     VkSwapchainKHR swapChains[] = {m_vulkanSwapChain};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -716,8 +760,8 @@ void TriangleApp::DrawFrame() {
     presentInfo.pResults = nullptr; // Optional
     vkQueuePresentKHR(m_vulkanPresentationQueue, &presentInfo);
 
-    //Wait for work to be finished (non-optimal GPU usage)
-    vkQueueWaitIdle(m_vulkanPresentationQueue);
+
+    m_vulkanCurrentFrame = (m_vulkanCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
 }
 
@@ -740,11 +784,8 @@ void TriangleApp::GetRequiredExtensionsInto(std::vector<const char*>* extensions
     const char** glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    extensions->insert(extensions->end(), &glfwExtensions[0], &glfwExtensions[glfwExtensionCount]);
-
-#ifdef ENABLE_VULKAN_DEBUG
-    extensions->push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
+    extensions->insert(extensions->end(), &glfwExtensions[0], &glfwExtensions[glfwExtensionCount]);   
+    extensions->insert(extensions->end(), g_requiredInstanceExtensions.begin(),g_requiredInstanceExtensions.end());
 
 }
 
@@ -887,15 +928,15 @@ VkExtent2D  TriangleApp::PickVulkanSwapExtent(const VkSurfaceCapabilitiesKHR& ca
 void TriangleApp::CleanUp() {
 
     //Semaphores
-    if (nullptr != m_vulkanImageAvailableSemaphore) {
-        vkDestroySemaphore(m_vulkanLogicalDevice, m_vulkanImageAvailableSemaphore, g_allocator);
-        m_vulkanImageAvailableSemaphore = nullptr;
+    const uint32_t numSyncObjects = static_cast<uint32_t>(m_vulkanImageAvailableSemaphores.size());
+    for (size_t i = 0; i < numSyncObjects; i++) {
+        vkDestroySemaphore(m_vulkanLogicalDevice, m_vulkanImageAvailableSemaphores[i], g_allocator);
+        vkDestroySemaphore(m_vulkanLogicalDevice, m_vulkanRenderFinishedSemaphores[i], g_allocator);
+        vkDestroyFence(m_vulkanLogicalDevice, m_vulkanInFlightFences[i], g_allocator);
     }
-
-    if (nullptr != m_vulkanRenderFinishedSemaphore) {
-        vkDestroySemaphore(m_vulkanLogicalDevice, m_vulkanRenderFinishedSemaphore, g_allocator);
-        m_vulkanRenderFinishedSemaphore = nullptr;
-    }
+    m_vulkanImageAvailableSemaphores.clear();
+    m_vulkanRenderFinishedSemaphores.clear();
+    m_vulkanInFlightFences.clear();
 
     if (nullptr != m_vulkanCommandPool) {
         vkDestroyCommandPool(m_vulkanLogicalDevice, m_vulkanCommandPool, g_allocator);

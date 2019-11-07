@@ -41,7 +41,7 @@ private:
     void CreateVulkanFrameBuffers();
     void CreateVulkanCommandPool();
     void CreateVulkanCommandBuffers();
-    void CreateVulkanSemaphores();
+    void CreateVulkanSyncObjects();
 
     void Loop(); 
     void DrawFrame();
@@ -70,8 +70,9 @@ private:
     VkPipeline          m_vulkanGraphicsPipeline;
     VkCommandPool       m_vulkanCommandPool;
     std::vector<VkCommandBuffer> m_vulkanCommandBuffers;
-    VkSemaphore m_vulkanImageAvailableSemaphore;
-    VkSemaphore m_vulkanRenderFinishedSemaphore;
+    
+    std::vector<VkSemaphore> m_vulkanImageAvailableSemaphores;
+    std::vector<VkSemaphore> m_vulkanRenderFinishedSemaphores;
 
     //Swap chain
     std::vector<VkImage>        m_vulkanSwapChainImages;
@@ -79,6 +80,9 @@ private:
     VkFormat                    m_vulkanSwapChainSurfaceFormat;
     VkExtent2D                  m_vulkanSwapChainExtent;
     std::vector<VkFramebuffer>  m_vulkanSwapChainFramebuffers;
+    uint32_t                    m_vulkanCurrentFrame;
+    std::vector<VkFence>        m_vulkanInFlightFences; //CPU-GPU synchronizations
+    std::vector<VkFence>        m_vulkanImagesInFlight; //To test if the current frame is still in flight
 
     //Queues
     QueueFamilyIndices  m_vulkanQueueFamilyIndices;
@@ -88,4 +92,6 @@ private:
 
     static const uint32_t WIDTH = 800;
     static const uint32_t HEIGHT = 600;
+
+    const uint32_t MAX_FRAMES_IN_FLIGHT = 100;
 };
