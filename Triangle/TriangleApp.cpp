@@ -585,6 +585,16 @@ void TriangleApp::CreateVulkanCommandPool() {
 
 //---------------------------------------------------------------------------------------------------------------------
 void TriangleApp::CreateVulkanVertexBuffers() {
+
+    VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+
+    //VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT: to write from the CPU.
+    //VK_MEMORY_PROPERTY_HOST_COHERENT_BIT: ensure that the driver is aware of our copying. Alternative: use flush
+    GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice, bufferSize, 
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+        &m_vulkanVB, &m_vulkanVBMemory);
+
     VkBufferCreateInfo bufferInfo = {};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = sizeof(vertices[0]) * vertices.size();
@@ -595,29 +605,14 @@ void TriangleApp::CreateVulkanVertexBuffers() {
         throw std::runtime_error("failed to create vertex buffer!");
     }
 
-    //Get the memory requirement of the VB
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(m_vulkanLogicalDevice, m_vulkanVB, &memRequirements);
-
-    //VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT: to write from the CPU.
-    //VK_MEMORY_PROPERTY_HOST_COHERENT_BIT: ensure that the driver is aware of our copying. Alternative: use flush
-    VkMemoryAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = GraphicsUtility::FindMemoryType(m_vulkanPhysicalDevice, 
-        memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-    );
-    if (vkAllocateMemory(m_vulkanLogicalDevice, &allocInfo, g_allocator, &m_vulkanVBMemory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate vertex buffer memory!");
-    }
-
-    vkBindBufferMemory(m_vulkanLogicalDevice, m_vulkanVB, m_vulkanVBMemory, 0);
 
     //Filling Vertex Buffer
     void* data = nullptr;
     vkMapMemory(m_vulkanLogicalDevice, m_vulkanVBMemory, 0, bufferInfo.size, 0, &data);
     memcpy(data, vertices.data(), (size_t) bufferInfo.size);
     vkUnmapMemory(m_vulkanLogicalDevice, m_vulkanVBMemory);
+
+    vkDeviceWaitIdle(m_vulkanLogicalDevice);
 
 }
 
