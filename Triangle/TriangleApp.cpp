@@ -588,18 +588,36 @@ void TriangleApp::CreateVulkanVertexBuffers() {
 
     const VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+
     //VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT: to write from the CPU.
     //VK_MEMORY_PROPERTY_HOST_COHERENT_BIT: ensure that the driver is aware of our copying. Alternative: use flush
     GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice, bufferSize, 
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-        &m_vulkanVB, &m_vulkanVBMemory);
+        &stagingBuffer, &stagingBufferMemory);
 
     //Filling Vertex Buffer
     void* data = nullptr;
-    vkMapMemory(m_vulkanLogicalDevice, m_vulkanVBMemory, 0, bufferSize, 0, &data);
+    vkMapMemory(m_vulkanLogicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, vertices.data(), bufferSize);
-    vkUnmapMemory(m_vulkanLogicalDevice, m_vulkanVBMemory);
+    vkUnmapMemory(m_vulkanLogicalDevice, stagingBufferMemory);
+
+    //VK_BUFFER_USAGE_TRANSFER_DST_BIT: destination in a memory transfer
+    GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice, bufferSize, 
+                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
+                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+                 &m_vulkanVB, &m_vulkanVBMemory);
+
+    //Copy buffer
+    GraphicsUtility::CopyBuffer(m_vulkanLogicalDevice, m_vulkanCommandPool, m_vulkanGraphicsQueue,
+        stagingBuffer, m_vulkanVB,bufferSize
+    );
+
+    vkDestroyBuffer(m_vulkanLogicalDevice, stagingBuffer, nullptr);
+    vkFreeMemory(m_vulkanLogicalDevice, stagingBufferMemory, nullptr);
 
 }
 

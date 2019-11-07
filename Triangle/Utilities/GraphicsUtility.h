@@ -13,5 +13,9 @@ class GraphicsUtility {
         static void CreateBuffer(const VkPhysicalDevice physicalDevice, const VkDevice device, VkDeviceSize size, 
                                  VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, 
                                  VkBuffer* buffer, VkDeviceMemory* bufferMemory);
-    
+
+        static void CopyBuffer(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, 
+                               const VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+
 };
+    
