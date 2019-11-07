@@ -17,10 +17,12 @@ public:
     TriangleApp();
     void Run();
     void CleanUp();
+    inline void RequestToRecreateSwapChain();
 
 private:
     void InitWindow();
     void InitVulkan();
+    void RecreateVulkanSwapChain();
 
 #ifdef ENABLE_VULKAN_DEBUG
     void InitVulkanDebugInstance(const VkApplicationInfo& appInfo, const std::vector<const char*>& extensions);
@@ -56,7 +58,9 @@ private:
     //Swap chain
     static VkSurfaceFormatKHR PickVulkanSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>* availableFormats);
     static VkPresentModeKHR   PickVulkanSwapPresentMode(const std::vector<VkPresentModeKHR>* availableModes);
-    static VkExtent2D         PickVulkanSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+    static VkExtent2D         PickVulkanSwapExtent(GLFWwindow* window, const VkSurfaceCapabilitiesKHR& capabilities);
+
+    void CleanUpVulkanSwapChain();
 
     GLFWwindow* m_window;
 
@@ -83,15 +87,17 @@ private:
     uint32_t                    m_vulkanCurrentFrame;
     std::vector<VkFence>        m_vulkanInFlightFences; //CPU-GPU synchronizations
     std::vector<VkFence>        m_vulkanImagesInFlight; //To test if the current frame is still in flight
+    bool                        m_recreateSwapChainRequested;
 
     //Queues
     QueueFamilyIndices  m_vulkanQueueFamilyIndices;
     VkQueue             m_vulkanGraphicsQueue;
     VkQueue             m_vulkanPresentationQueue;
 
-
     static const uint32_t WIDTH = 800;
     static const uint32_t HEIGHT = 600;
 
     const uint32_t MAX_FRAMES_IN_FLIGHT = 100;
 };
+
+void TriangleApp::RequestToRecreateSwapChain() { m_recreateSwapChainRequested = true; }
