@@ -586,7 +586,7 @@ void TriangleApp::CreateVulkanCommandPool() {
 //---------------------------------------------------------------------------------------------------------------------
 void TriangleApp::CreateVulkanVertexBuffers() {
 
-    VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+    const VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
     //VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT: to write from the CPU.
     //VK_MEMORY_PROPERTY_HOST_COHERENT_BIT: ensure that the driver is aware of our copying. Alternative: use flush
@@ -595,24 +595,11 @@ void TriangleApp::CreateVulkanVertexBuffers() {
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
         &m_vulkanVB, &m_vulkanVBMemory);
 
-    VkBufferCreateInfo bufferInfo = {};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = sizeof(vertices[0]) * vertices.size();
-    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; //only used by the graphics queue
-
-    if (vkCreateBuffer(m_vulkanLogicalDevice, &bufferInfo, g_allocator, &m_vulkanVB) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create vertex buffer!");
-    }
-
-
     //Filling Vertex Buffer
     void* data = nullptr;
-    vkMapMemory(m_vulkanLogicalDevice, m_vulkanVBMemory, 0, bufferInfo.size, 0, &data);
-    memcpy(data, vertices.data(), (size_t) bufferInfo.size);
+    vkMapMemory(m_vulkanLogicalDevice, m_vulkanVBMemory, 0, bufferSize, 0, &data);
+    memcpy(data, vertices.data(), bufferSize);
     vkUnmapMemory(m_vulkanLogicalDevice, m_vulkanVBMemory);
-
-    vkDeviceWaitIdle(m_vulkanLogicalDevice);
 
 }
 
