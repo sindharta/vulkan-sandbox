@@ -25,19 +25,25 @@ const std::vector<const char*> g_requiredDeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
+
+//---------------------------------------------------------------------------------------------------------------------
+static void WindowResizedCallback(GLFWwindow* window, int width, int height) {
+    TriangleApp* app = reinterpret_cast<TriangleApp*>(glfwGetWindowUserPointer(window));
+    app->RequestToRecreateSwapChain();
+}
+
 //---------------------------------------------------------------------------------------------------------------------
 
 TriangleApp::TriangleApp() 
     : m_vulkanInstance(nullptr), m_vulkanSurface(nullptr)
     , m_vulkanPhysicalDevice(VK_NULL_HANDLE), m_vulkanLogicalDevice(nullptr), m_vulkanGraphicsQueue(nullptr)
     , m_vulkanSwapChain(nullptr), m_vulkanRenderPass(nullptr), m_vulkanPipelineLayout(nullptr), m_vulkanGraphicsPipeline(nullptr)
-    , m_vulkanCommandPool(nullptr), m_vulkanCurrentFrame(0)
+    , m_vulkanCommandPool(nullptr), m_vulkanCurrentFrame(0), m_recreateSwapChainRequested(false)
     , m_window(nullptr) 
 {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-
 
 void TriangleApp::Run() {
     InitWindow();
@@ -60,9 +66,10 @@ void TriangleApp::Run() {
 void TriangleApp::InitWindow() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     m_window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan window", nullptr, nullptr);
-
+    glfwSetWindowUserPointer(m_window, this);
+    glfwSetFramebufferSizeCallback(m_window, WindowResizedCallback);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -105,6 +112,29 @@ void TriangleApp::InitVulkan() {
     CreateVulkanSyncObjects();
 }
 
+//---------------------------------------------------------------------------------------------------------------------
+
+void TriangleApp::RecreateVulkanSwapChain() {
+
+    //Handle window minimization
+    int width = 0, height = 0;
+    while (width == 0 || height == 0) {
+        glfwGetFramebufferSize(m_window, &width, &height);
+        glfwWaitEvents();
+    }
+
+    vkDeviceWaitIdle(m_vulkanLogicalDevice);
+
+    CleanUpVulkanSwapChain();
+    CreateVulkanSwapChain();
+    CreateVulkanImageViews();
+    CreateVulkanRenderPass();
+    CreateVulkanGraphicsPipeline();
+    CreateVulkanFrameBuffers();
+    CreateVulkanCommandBuffers();
+    m_recreateSwapChainRequested = false;
+
+}
 
 //---------------------------------------------------------------------------------------------------------------------
 void TriangleApp::CreateVulkanSurface() {
@@ -208,7 +238,7 @@ void TriangleApp::CreateVulkanSwapChain() {
 
     VkSurfaceFormatKHR surfaceFormat = PickVulkanSwapSurfaceFormat(&surfaceInfo.Formats);
     VkPresentModeKHR presentMode = PickVulkanSwapPresentMode(&surfaceInfo.PresentModes);
-    m_vulkanSwapChainExtent = PickVulkanSwapExtent(capabilities);
+    m_vulkanSwapChainExtent = PickVulkanSwapExtent(m_window, capabilities);
     
     uint32_t imageCount = capabilities.minImageCount + 1; //add +1 to prevent waiting for internal ops
     if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount) {
@@ -715,7 +745,16 @@ void TriangleApp::DrawFrame() {
     //Acquire an image from the swap chain
     VkSemaphore curImageAvailableSemaphore = m_vulkanImageAvailableSemaphores[m_vulkanCurrentFrame];
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(m_vulkanLogicalDevice, m_vulkanSwapChain, UINT64_MAX, curImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+    {
+        const VkResult result = vkAcquireNextImageKHR(m_vulkanLogicalDevice, m_vulkanSwapChain, UINT64_MAX, 
+                                                      curImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+            RecreateVulkanSwapChain();
+            return;
+        } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+            throw std::runtime_error("failed to acquire swap chain image!");
+        }
+    }
 
     //Check if we are about to draw to an image from the swap chain that is still in flight.
     //This can happen for example if MAX_FRAMES_IN_FLIGHT >= the number of images in the swap chain.
@@ -758,8 +797,15 @@ void TriangleApp::DrawFrame() {
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
     presentInfo.pResults = nullptr; // Optional
-    vkQueuePresentKHR(m_vulkanPresentationQueue, &presentInfo);
-
+    {
+        const VkResult result = vkQueuePresentKHR(m_vulkanPresentationQueue, &presentInfo);
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_recreateSwapChainRequested) {
+            //The recreateSwapChainRequested check is put here to make sure that the semaphores are in consistent state
+            RecreateVulkanSwapChain();
+        } else if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to present swap chain image!");
+        }
+    }
 
     m_vulkanCurrentFrame = (m_vulkanCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
@@ -905,19 +951,22 @@ VkPresentModeKHR TriangleApp::PickVulkanSwapPresentMode(const std::vector<VkPres
 
 //---------------------------------------------------------------------------------------------------------------------
 
-VkExtent2D  TriangleApp::PickVulkanSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+VkExtent2D  TriangleApp::PickVulkanSwapExtent(GLFWwindow* window, const VkSurfaceCapabilitiesKHR& capabilities) {
 
     if (capabilities.currentExtent.width != UINT32_MAX) {
         return capabilities.currentExtent;
     } else {
-        VkExtent2D actualExtent = {WIDTH, HEIGHT};
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);
 
-        actualExtent.width = std::max(capabilities.minImageExtent.width, 
-            std::min(capabilities.maxImageExtent.width, actualExtent.width)
-        );
-        actualExtent.height = std::max(capabilities.minImageExtent.height, 
-            std::min(capabilities.maxImageExtent.height, actualExtent.height)
-        );
+        VkExtent2D actualExtent = {
+            std::max(capabilities.minImageExtent.width, 
+                     std::min(capabilities.maxImageExtent.width, static_cast<uint32_t>(width))
+                    ),
+            std::max(capabilities.minImageExtent.height, 
+                     std::min(capabilities.maxImageExtent.height, static_cast<uint32_t>(height))
+                    )
+        };
 
         return actualExtent;
     }
@@ -938,43 +987,18 @@ void TriangleApp::CleanUp() {
     m_vulkanRenderFinishedSemaphores.clear();
     m_vulkanInFlightFences.clear();
 
+    CleanUpVulkanSwapChain();
+
     if (nullptr != m_vulkanCommandPool) {
         vkDestroyCommandPool(m_vulkanLogicalDevice, m_vulkanCommandPool, g_allocator);
         m_vulkanCommandPool = nullptr;
     }
 
-    for (VkFramebuffer& framebuffer : m_vulkanSwapChainFramebuffers) {
-        vkDestroyFramebuffer(m_vulkanLogicalDevice, framebuffer, g_allocator);
-    }
-    m_vulkanSwapChainFramebuffers.clear();
 
-    for (VkImageView& imageView : m_vulkanSwapChainImageViews) {
-        vkDestroyImageView(m_vulkanLogicalDevice, imageView, g_allocator);
-    }
-
-    m_vulkanSwapChainImages.clear();
     m_vulkanGraphicsQueue = nullptr;
     m_vulkanPresentationQueue = nullptr;
 
-    if (nullptr != m_vulkanGraphicsPipeline) {
-        vkDestroyPipeline(m_vulkanLogicalDevice, m_vulkanGraphicsPipeline, g_allocator);
-        m_vulkanGraphicsPipeline = nullptr;
-    }
 
-
-    if (nullptr != m_vulkanPipelineLayout) {
-        vkDestroyPipelineLayout(m_vulkanLogicalDevice, m_vulkanPipelineLayout, g_allocator);
-        m_vulkanPipelineLayout = nullptr;
-    }
-
-    if (nullptr != m_vulkanRenderPass) {
-        vkDestroyRenderPass(m_vulkanLogicalDevice, m_vulkanRenderPass, g_allocator);
-        m_vulkanRenderPass = nullptr;
-    }
-
-    if (nullptr!= m_vulkanSwapChain) {
-        vkDestroySwapchainKHR(m_vulkanLogicalDevice, m_vulkanSwapChain, g_allocator);
-    }
 
     if (nullptr != m_vulkanLogicalDevice) {
         vkDestroyDevice(m_vulkanLogicalDevice, g_allocator);
@@ -1000,4 +1024,40 @@ void TriangleApp::CleanUp() {
         m_window = nullptr;
     }
    
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void TriangleApp::CleanUpVulkanSwapChain() {
+
+    vkFreeCommandBuffers(m_vulkanLogicalDevice, m_vulkanCommandPool, static_cast<uint32_t>(m_vulkanCommandBuffers.size()), m_vulkanCommandBuffers.data());
+
+    for (VkFramebuffer& framebuffer : m_vulkanSwapChainFramebuffers) {
+        vkDestroyFramebuffer(m_vulkanLogicalDevice, framebuffer, g_allocator);
+    }
+    m_vulkanSwapChainFramebuffers.clear();
+
+    for (VkImageView& imageView : m_vulkanSwapChainImageViews) {
+        vkDestroyImageView(m_vulkanLogicalDevice, imageView, g_allocator);
+    }
+    m_vulkanSwapChainImages.clear();
+
+
+    if (nullptr != m_vulkanGraphicsPipeline) {
+        vkDestroyPipeline(m_vulkanLogicalDevice, m_vulkanGraphicsPipeline, g_allocator);
+        m_vulkanGraphicsPipeline = nullptr;
+    }
+
+    if (nullptr != m_vulkanPipelineLayout) {
+        vkDestroyPipelineLayout(m_vulkanLogicalDevice, m_vulkanPipelineLayout, g_allocator);
+        m_vulkanPipelineLayout = nullptr;
+    }
+
+    if (nullptr != m_vulkanRenderPass) {
+        vkDestroyRenderPass(m_vulkanLogicalDevice, m_vulkanRenderPass, g_allocator);
+        m_vulkanRenderPass = nullptr;
+    }
+    if (nullptr!= m_vulkanSwapChain) {
+        vkDestroySwapchainKHR(m_vulkanLogicalDevice, m_vulkanSwapChain, g_allocator);
+    }
 }
