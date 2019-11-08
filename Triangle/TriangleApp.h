@@ -39,16 +39,21 @@ private:
     void CreateVulkanSwapChain();
     void CreateVulkanImageViews();
     void CreateVulkanRenderPass();
+    void CreateVulkanDescriptorSetLayout();
+    void CreateVulkanDescriptorPool();
+    void CreateVulkanDescriptorSets();
     void CreateVulkanGraphicsPipeline();
     void CreateVulkanFrameBuffers();
     void CreateVulkanCommandPool();
     void CreateVulkanVertexBuffer();
     void CreateVulkanIndexBuffer();
+    void CreateVulkanUniformBuffers();
     void CreateVulkanCommandBuffers();
     void CreateVulkanSyncObjects();
 
     void Loop(); 
     void DrawFrame();
+    void UpdateVulkanUniformBuffers(uint32_t imageIndex);
     void PrintSupportedExtensions();
     void GetRequiredExtensionsInto(std::vector<const char*>* extensions);
     static void GetVulkanQueueFamilyPropertiesInto(const VkPhysicalDevice& device, std::vector<VkQueueFamilyProperties>* );
@@ -66,15 +71,18 @@ private:
 
     GLFWwindow* m_window;
 
-    VkInstance          m_vulkanInstance;
-    VkSurfaceKHR        m_vulkanSurface;
-    VkPhysicalDevice    m_vulkanPhysicalDevice;
-    VkDevice            m_vulkanLogicalDevice;
-    VkSwapchainKHR      m_vulkanSwapChain;
-    VkRenderPass        m_vulkanRenderPass;
-    VkPipelineLayout    m_vulkanPipelineLayout;
-    VkPipeline          m_vulkanGraphicsPipeline;
-    VkCommandPool       m_vulkanCommandPool;
+    VkInstance                      m_vulkanInstance;
+    VkSurfaceKHR                    m_vulkanSurface;
+    VkPhysicalDevice                m_vulkanPhysicalDevice;
+    VkDevice                        m_vulkanLogicalDevice;
+    VkSwapchainKHR                  m_vulkanSwapChain;
+    VkRenderPass                    m_vulkanRenderPass;
+    VkDescriptorSetLayout           m_vulkanDescriptorSetLayout;
+    VkDescriptorPool                m_vulkanDescriptorPool; //A pool to create descriptor set to bind uniform buffers 
+    std::vector<VkDescriptorSet>    m_vulkanDescriptorSets; //To bind uniform buffers
+    VkPipelineLayout                m_vulkanPipelineLayout; //to pass uniform values to shaders
+    VkPipeline                      m_vulkanGraphicsPipeline;
+    VkCommandPool                   m_vulkanCommandPool;
 
     VkBuffer            m_vulkanVB;
     VkDeviceMemory      m_vulkanVBMemory;
@@ -96,6 +104,10 @@ private:
     std::vector<VkFence>        m_vulkanInFlightFences; //CPU-GPU synchronizations
     std::vector<VkFence>        m_vulkanImagesInFlight; //To test if the current frame is still in flight
     bool                        m_recreateSwapChainRequested;
+
+    //These Uniform buffers will be updated in every DrawFrame
+    std::vector<VkBuffer>       m_vulkanUniformBuffers;
+    std::vector<VkDeviceMemory> m_vulkanUniformBuffersMemory;
 
     //Queues
     QueueFamilyIndices  m_vulkanQueueFamilyIndices;
