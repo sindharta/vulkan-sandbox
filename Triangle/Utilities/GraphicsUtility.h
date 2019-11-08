@@ -27,8 +27,12 @@ class GraphicsUtility {
                                 VkImage* image, VkDeviceMemory* imageMemory);
 
         static VkCommandBuffer BeginOneTimeCommandBuffer(const VkDevice device, const VkCommandPool commandPool);
+
+        //Uses vkQueueWaitIdle to synchronize
         static void  EndAndSubmitOneTimeCommandBuffer(const VkDevice device, const VkCommandPool commandPool, 
                                                       VkQueue queue, VkCommandBuffer commandBuffer);
+
+
 
 };
     
