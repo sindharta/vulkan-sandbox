@@ -36,8 +36,10 @@ uint32_t GraphicsUtility::FindMemoryType(const VkPhysicalDevice physicalDevice, 
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void GraphicsUtility::CreateBuffer(const VkPhysicalDevice physicalDevice, const VkDevice device, VkDeviceSize size, 
-                                   VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, 
+void GraphicsUtility::CreateBuffer(const VkPhysicalDevice physicalDevice, const VkDevice device, 
+                                   const VkAllocationCallbacks* allocator,
+                                   const VkDeviceSize size, 
+                                   const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties, 
                                    VkBuffer* buffer, VkDeviceMemory* bufferMemory) 
 {
     VkBufferCreateInfo bufferInfo = {};
@@ -106,4 +108,48 @@ void GraphicsUtility::CopyBuffer(const VkDevice device, const VkCommandPool comm
     vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 
 }
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void GraphicsUtility::CreateImage(const VkPhysicalDevice physicalDevice, const VkDevice device, 
+    const VkAllocationCallbacks* allocator,
+    const uint32_t width, const uint32_t height,
+    VkImageTiling tiling, VkImageUsageFlags usage,VkMemoryPropertyFlags properties,
+    VkImage* image, VkDeviceMemory* imageMemory) 
+{
+
+    VkImageCreateInfo imageInfo = {};
+    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.extent.width = static_cast<uint32_t>(width);
+    imageInfo.extent.height = static_cast<uint32_t>(height);
+    imageInfo.extent.depth = 1;
+    imageInfo.mipLevels = 1;
+    imageInfo.arrayLayers = 1;
+    imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imageInfo.tiling = tiling;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageInfo.usage = usage;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.flags = 0; // Optional
+    if (vkCreateImage(device, &imageInfo, allocator, image) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create image!");
+    }
+
+    VkMemoryRequirements memRequirements;
+    vkGetImageMemoryRequirements(device, *image, &memRequirements);
+
+    VkMemoryAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex = GraphicsUtility::FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
+
+    if (vkAllocateMemory(device, &allocInfo, allocator, imageMemory) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate image memory!");
+    }
+
+    vkBindImageMemory(device, *image, *imageMemory, 0);
+}
+
 

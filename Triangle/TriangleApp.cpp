@@ -8,12 +8,16 @@
 #include <algorithm>  //max
 #include <chrono>
 
+#define STB_IMAGE_IMPLEMENTATION    //This will include the implementation of STB, instead of only the header
+#include "stb_image.h"  //for loading images
+
 
 #include "Utilities/FileUtility.h"      //ReadFileInto()
 #include "Utilities/GraphicsUtility.h"    //CreateShaderModule()    
 
 #include "ColorVertex.h"    
 #include "MVPUniform.h"    
+
 
 VkAllocationCallbacks* g_allocator = nullptr; //Always use default allocator
 
@@ -61,6 +65,7 @@ TriangleApp::TriangleApp()
     , m_vulkanCommandPool(nullptr), m_vulkanCurrentFrame(0), m_recreateSwapChainRequested(false)
     , m_vulkanVB(VK_NULL_HANDLE), m_vulkanVBMemory(VK_NULL_HANDLE)
     , m_vulkanIB(VK_NULL_HANDLE), m_vulkanIBMemory(VK_NULL_HANDLE)
+    , m_vulkanTextureImage(VK_NULL_HANDLE), m_vulkanTextureImageMemory(VK_NULL_HANDLE)
     , m_window(nullptr) 
 {
 }
@@ -131,6 +136,7 @@ void TriangleApp::InitVulkan() {
     CreateVulkanGraphicsPipeline();
     CreateVulkanFrameBuffers();
     CreateVulkanCommandPool();
+    CreateVulkanTextureImage();
     CreateVulkanVertexBuffer();
     CreateVulkanIndexBuffer();
     CreateVulkanUniformBuffers();
@@ -697,7 +703,7 @@ void TriangleApp::CreateVulkanVertexBuffer() {
 
     //VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT: to write from the CPU.
     //VK_MEMORY_PROPERTY_HOST_COHERENT_BIT: ensure that the driver is aware of our copying. Alternative: use flush
-    GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice, bufferSize, 
+    GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice, g_allocator, bufferSize, 
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
         &stagingBuffer, &stagingBufferMemory);
@@ -709,7 +715,7 @@ void TriangleApp::CreateVulkanVertexBuffer() {
     vkUnmapMemory(m_vulkanLogicalDevice, stagingBufferMemory);
 
     //VK_BUFFER_USAGE_TRANSFER_DST_BIT: destination in a memory transfer
-    GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice, bufferSize, 
+    GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice, g_allocator, bufferSize, 
                  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
                  &m_vulkanVB, &m_vulkanVBMemory);
@@ -731,7 +737,7 @@ void TriangleApp::CreateVulkanIndexBuffer() {
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice, bufferSize, 
+    GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice, g_allocator, bufferSize, 
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
         &stagingBuffer, &stagingBufferMemory
@@ -742,7 +748,7 @@ void TriangleApp::CreateVulkanIndexBuffer() {
     memcpy(data, g_indices.data(), (size_t) bufferSize);
     vkUnmapMemory(m_vulkanLogicalDevice, stagingBufferMemory);
 
-    GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice,bufferSize, 
+    GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice,g_allocator, bufferSize, 
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_vulkanIB, &m_vulkanIBMemory);
 
@@ -756,6 +762,46 @@ void TriangleApp::CreateVulkanIndexBuffer() {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
+void TriangleApp::CreateVulkanTextureImage() {
+    int texWidth, texHeight, texChannels;
+    stbi_uc* pixels = stbi_load("../Resources/Textures/statue.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    const VkDeviceSize imageSize = texWidth * texHeight * 4;
+
+    if (!pixels) {
+        throw std::runtime_error("failed to load texture image!");
+    }
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+
+    GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice, g_allocator, imageSize, 
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+        &stagingBuffer, &stagingBufferMemory
+    );
+
+    //[TODO-sin: 2019-11-8] Put this into a function
+    void* data;
+    vkMapMemory(m_vulkanLogicalDevice, stagingBufferMemory, 0, imageSize, 0, &data);
+    memcpy(data, pixels, static_cast<size_t>(imageSize));
+    vkUnmapMemory(m_vulkanLogicalDevice, stagingBufferMemory);
+    stbi_image_free(pixels);
+
+    //VK_IMAGE_USAGE_SAMPLED_BIT: to allow access from the shader
+    GraphicsUtility::CreateImage(m_vulkanPhysicalDevice,m_vulkanLogicalDevice,g_allocator, texWidth, texHeight,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,&m_vulkanTextureImage,&m_vulkanTextureImageMemory
+    );
+
+
+    vkDestroyBuffer(m_vulkanLogicalDevice, stagingBuffer, g_allocator);
+    vkFreeMemory(m_vulkanLogicalDevice, stagingBufferMemory, g_allocator);
+
+}
+
+
+//---------------------------------------------------------------------------------------------------------------------
 void TriangleApp::CreateVulkanUniformBuffers() {
 
     const VkDeviceSize bufferSize = sizeof(MVPUniform);
@@ -767,7 +813,7 @@ void TriangleApp::CreateVulkanUniformBuffers() {
     //VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT: to write from the CPU.
     //VK_MEMORY_PROPERTY_HOST_COHERENT_BIT: ensure that the driver is aware of our copying. Alternative: use flush
     for (uint32_t i = 0; i < numImages; ++i) {
-        GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice, bufferSize, 
+        GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice, g_allocator, bufferSize, 
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
             &m_vulkanUniformBuffers[i], &m_vulkanUniformBuffersMemory[i]
@@ -1042,8 +1088,8 @@ void TriangleApp::UpdateVulkanUniformBuffers(uint32_t imageIndex) {
     vkMapMemory(m_vulkanLogicalDevice, m_vulkanUniformBuffersMemory[imageIndex], 0, sizeof(mvp), 0, &data);
     memcpy(data, &mvp, sizeof(mvp));
     vkUnmapMemory(m_vulkanLogicalDevice, m_vulkanUniformBuffersMemory[imageIndex]);
-
 }
+
 
 //---------------------------------------------------------------------------------------------------------------------
 void TriangleApp::PrintSupportedExtensions() {
@@ -1226,6 +1272,16 @@ void TriangleApp::CleanUp() {
     if (VK_NULL_HANDLE != m_vulkanDescriptorSetLayout) {
         vkDestroyDescriptorSetLayout(m_vulkanLogicalDevice, m_vulkanDescriptorSetLayout, g_allocator);
         m_vulkanDescriptorSetLayout = VK_NULL_HANDLE;
+    }
+
+    //Textures
+    if (VK_NULL_HANDLE!=m_vulkanTextureImage) {
+        vkDestroyImage(m_vulkanLogicalDevice, m_vulkanTextureImage, g_allocator);
+        m_vulkanTextureImage = VK_NULL_HANDLE;
+    }
+    if (VK_NULL_HANDLE!=m_vulkanTextureImageMemory) {
+        vkFreeMemory(m_vulkanLogicalDevice, m_vulkanTextureImageMemory, g_allocator);
+        m_vulkanTextureImageMemory = VK_NULL_HANDLE;
     }
 
     //Vertex Buffers
