@@ -48,6 +48,7 @@ private:
     void CreateVulkanVertexBuffer();
     void CreateVulkanIndexBuffer();
     void CreateVulkanTextureImage();
+    void CreateVulkanTextureImageView();
     void CreateVulkanUniformBuffers();
     void CreateVulkanCommandBuffers();
     void CreateVulkanSyncObjects();
@@ -95,6 +96,7 @@ private:
     VkDeviceMemory      m_vulkanIBMemory;
     VkImage             m_vulkanTextureImage;
     VkDeviceMemory      m_vulkanTextureImageMemory;
+    VkImageView         m_vulkanTextureImageView;
 
     std::vector<VkCommandBuffer> m_vulkanCommandBuffers;
     

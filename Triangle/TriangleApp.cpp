@@ -66,6 +66,7 @@ TriangleApp::TriangleApp()
     , m_vulkanVB(VK_NULL_HANDLE), m_vulkanVBMemory(VK_NULL_HANDLE)
     , m_vulkanIB(VK_NULL_HANDLE), m_vulkanIBMemory(VK_NULL_HANDLE)
     , m_vulkanTextureImage(VK_NULL_HANDLE), m_vulkanTextureImageMemory(VK_NULL_HANDLE)
+    , m_vulkanTextureImageView(VK_NULL_HANDLE)
     , m_window(nullptr) 
 {
 }
@@ -119,7 +120,6 @@ void TriangleApp::InitVulkan() {
         std::cout << "\t" << extension << std::endl;
     }
 
-
 #ifdef ENABLE_VULKAN_DEBUG
     InitVulkanDebugInstance(appInfo, extensions);
 #else
@@ -137,6 +137,7 @@ void TriangleApp::InitVulkan() {
     CreateVulkanFrameBuffers();
     CreateVulkanCommandPool();
     CreateVulkanTextureImage();
+    CreateVulkanTextureImageView();
     CreateVulkanVertexBuffer();
     CreateVulkanIndexBuffer();
     CreateVulkanUniformBuffers();
@@ -339,26 +340,9 @@ void TriangleApp::CreateVulkanImageViews() {
     m_vulkanSwapChainImageViews.resize(numImages);
 
     for (size_t i = 0; i < numImages; i++) {
-        VkImageViewCreateInfo createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = m_vulkanSwapChainImages[i];
-        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        createInfo.format = m_vulkanSwapChainSurfaceFormat;
-        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        m_vulkanSwapChainImageViews[i] = GraphicsUtility::CreateImageView(m_vulkanLogicalDevice, g_allocator, 
+            m_vulkanSwapChainImages[i], m_vulkanSwapChainSurfaceFormat);
 
-        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        createInfo.subresourceRange.baseMipLevel = 0;
-        createInfo.subresourceRange.levelCount = 1;
-        createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.layerCount = 1;
-
-        if (vkCreateImageView(m_vulkanLogicalDevice, &createInfo, g_allocator, &m_vulkanSwapChainImageViews[i]) != VK_SUCCESS) 
-        {
-            throw std::runtime_error("failed to create image views!");
-        }
     }
 }
 
@@ -814,6 +798,14 @@ void TriangleApp::CreateVulkanTextureImage() {
 
     vkDestroyBuffer(m_vulkanLogicalDevice, stagingBuffer, g_allocator);
     vkFreeMemory(m_vulkanLogicalDevice, stagingBufferMemory, g_allocator);
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void TriangleApp::CreateVulkanTextureImageView() {
+    m_vulkanTextureImageView = GraphicsUtility::CreateImageView(m_vulkanLogicalDevice, 
+        g_allocator, m_vulkanTextureImage, VK_FORMAT_R8G8B8A8_UNORM);
 
 }
 
@@ -1292,6 +1284,11 @@ void TriangleApp::CleanUp() {
     }
 
     //Textures
+    if (VK_NULL_HANDLE != m_vulkanTextureImageView) {
+        vkDestroyImageView(m_vulkanLogicalDevice, m_vulkanTextureImageView, g_allocator);
+        m_vulkanTextureImageView = VK_NULL_HANDLE;
+    }
+
     if (VK_NULL_HANDLE!=m_vulkanTextureImage) {
         vkDestroyImage(m_vulkanLogicalDevice, m_vulkanTextureImage, g_allocator);
         m_vulkanTextureImage = VK_NULL_HANDLE;

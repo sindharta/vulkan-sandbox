@@ -20,6 +20,9 @@ class GraphicsUtility {
         static void CopyBuffer(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, 
                                const VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
+        static VkImageView  CreateImageView(const VkDevice device, const VkAllocationCallbacks* allocator, 
+                                            const VkImage image, const VkFormat format);
+
         static void CreateImage(const VkPhysicalDevice physicalDevice, const VkDevice device, 
                                 const VkAllocationCallbacks* allocator,
                                 const uint32_t width, const uint32_t height, 
