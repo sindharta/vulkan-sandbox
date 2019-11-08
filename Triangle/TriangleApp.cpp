@@ -787,6 +787,8 @@ void TriangleApp::CreateVulkanTextureImage() {
     vkUnmapMemory(m_vulkanLogicalDevice, stagingBufferMemory);
     stbi_image_free(pixels);
 
+    //[TODO-sin: 2019-11-8] Why don't we create an image with optimal layout from the beginning ?
+    //Create Image buffer. 
     //VK_IMAGE_USAGE_SAMPLED_BIT: to allow access from the shader
     GraphicsUtility::CreateImage(m_vulkanPhysicalDevice,m_vulkanLogicalDevice,g_allocator, texWidth, texHeight,
         VK_IMAGE_TILING_OPTIMAL,
@@ -794,6 +796,21 @@ void TriangleApp::CreateVulkanTextureImage() {
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,&m_vulkanTextureImage,&m_vulkanTextureImageMemory
     );
 
+    //Transition the texture image to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    GraphicsUtility::DoImageLayoutTransition(m_vulkanLogicalDevice, m_vulkanCommandPool, m_vulkanGraphicsQueue, 
+        &m_vulkanTextureImage, VK_FORMAT_R8G8B8A8_UNORM, 
+        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    );
+
+    //Execute the buffer to image copy operation
+    GraphicsUtility::CopyBufferToImage(m_vulkanLogicalDevice,m_vulkanCommandPool, m_vulkanGraphicsQueue,stagingBuffer, 
+        m_vulkanTextureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+
+    //one last transition to prepare it for shader access:
+    GraphicsUtility::DoImageLayoutTransition(m_vulkanLogicalDevice, m_vulkanCommandPool, m_vulkanGraphicsQueue, 
+        &m_vulkanTextureImage, VK_FORMAT_R8G8B8A8_UNORM, 
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
 
     vkDestroyBuffer(m_vulkanLogicalDevice, stagingBuffer, g_allocator);
     vkFreeMemory(m_vulkanLogicalDevice, stagingBufferMemory, g_allocator);
