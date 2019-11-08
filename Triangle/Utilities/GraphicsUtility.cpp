@@ -178,8 +178,6 @@ void GraphicsUtility::DoImageLayoutTransition(const VkDevice device, const VkCom
     barrier.subresourceRange.levelCount = 1; //No mip map
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
-    barrier.srcAccessMask = 0; 
-    barrier.dstAccessMask = 0; 
 
     VkPipelineStageFlags sourceStage = 0;
     VkPipelineStageFlags destinationStage = 0;
@@ -220,7 +218,6 @@ void GraphicsUtility::DoImageLayoutTransition(const VkDevice device, const VkCom
 void GraphicsUtility::CopyBufferToImage(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue,
     const VkBuffer buffer, VkImage image, const uint32_t width, const uint32_t height)         
 {
-
     VkCommandBuffer commandBuffer = BeginOneTimeCommandBuffer(device, commandPool);
 
     VkBufferImageCopy region = {};
@@ -239,6 +236,15 @@ void GraphicsUtility::CopyBufferToImage(const VkDevice device, const VkCommandPo
         height,
         1
     };
+
+    vkCmdCopyBufferToImage(
+        commandBuffer,
+        buffer,
+        image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &region
+    );
 
     EndAndSubmitOneTimeCommandBuffer(device, commandPool, queue, commandBuffer);
 }
