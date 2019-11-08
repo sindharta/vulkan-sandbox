@@ -168,6 +168,7 @@
   <ItemGroup>
     <ClInclude Include="ColorVertex.h" />
     <ClInclude Include="Config.h" />
+    <ClInclude Include="TextureVertex.h" />
     <ClInclude Include="MVPUniform.h" />
     <ClInclude Include="PhysicalDeviceSurfaceInfo.h" />
     <ClInclude Include="QueueFamilyIndices.h" />
@@ -177,6 +178,8 @@
     <ClInclude Include="VulkanDebugMessenger.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\Texture.frag" />
+    <None Include="Shaders\Texture.vert" />
     <None Include="Shaders\Triangle.frag" />
     <None Include="Shaders\Triangle.vert">
       <FileType>Document</FileType>

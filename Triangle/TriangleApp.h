@@ -47,20 +47,27 @@ private:
     void CreateVulkanCommandPool();
     void CreateVulkanVertexBuffer();
     void CreateVulkanIndexBuffer();
+    void CreateVulkanTextureImage();
+    void CreateVulkanTextureImageView();
+    void CreateVulkanTextureSampler();
     void CreateVulkanUniformBuffers();
     void CreateVulkanCommandBuffers();
     void CreateVulkanSyncObjects();
 
+
     void Loop(); 
     void DrawFrame();
     void UpdateVulkanUniformBuffers(uint32_t imageIndex);
-    void PrintSupportedExtensions();
-    void GetRequiredExtensionsInto(std::vector<const char*>* extensions);
+
+    static void PrintSupportedExtensions();
+    static void GetRequiredExtensionsInto(std::vector<const char*>* extensions);
+
     static void GetVulkanQueueFamilyPropertiesInto(const VkPhysicalDevice& device, std::vector<VkQueueFamilyProperties>* );
     static QueueFamilyIndices QueryVulkanQueueFamilyIndices(const VkPhysicalDevice& device, const VkSurfaceKHR& surface);
     static PhysicalDeviceSurfaceInfo QueryVulkanPhysicalDeviceSurfaceInfo(const VkPhysicalDevice& device, 
         const VkSurfaceKHR& surface);
     static bool CheckDeviceExtensionSupport(const VkPhysicalDevice& device,const std::vector<const char*>* extensions);
+
 
     //Swap chain
     static VkSurfaceFormatKHR PickVulkanSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>* availableFormats);
@@ -88,6 +95,10 @@ private:
     VkDeviceMemory      m_vulkanVBMemory;
     VkBuffer            m_vulkanIB;
     VkDeviceMemory      m_vulkanIBMemory;
+    VkImage             m_vulkanTextureImage;
+    VkDeviceMemory      m_vulkanTextureImageMemory;
+    VkImageView         m_vulkanTextureImageView;
+    VkSampler           m_vulkanTextureSampler;
 
     std::vector<VkCommandBuffer> m_vulkanCommandBuffers;
     
