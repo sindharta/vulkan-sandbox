@@ -26,5 +26,9 @@ class GraphicsUtility {
                                 VkMemoryPropertyFlags properties, 
                                 VkImage* image, VkDeviceMemory* imageMemory);
 
+        static VkCommandBuffer BeginOneTimeCommandBuffer(const VkDevice device, const VkCommandPool commandPool);
+        static void  EndAndSubmitOneTimeCommandBuffer(const VkDevice device, const VkCommandPool commandPool, 
+                                                      VkQueue queue, VkCommandBuffer commandBuffer);
+
 };
     

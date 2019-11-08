@@ -73,6 +73,20 @@ void GraphicsUtility::CreateBuffer(const VkPhysicalDevice physicalDevice, const 
 void GraphicsUtility::CopyBuffer(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue,
                                  const VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) 
 {
+    VkCommandBuffer commandBuffer = BeginOneTimeCommandBuffer(device,commandPool);
+
+    //Start copy
+    VkBufferCopy copyRegion = {};
+    copyRegion.srcOffset = 0; // Optional
+    copyRegion.dstOffset = 0; // Optional
+    copyRegion.size = size;
+    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+    EndAndSubmitOneTimeCommandBuffer(device,commandPool,queue,commandBuffer);
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+VkCommandBuffer GraphicsUtility::BeginOneTimeCommandBuffer(const VkDevice device, const VkCommandPool commandPool)   {
     //Create a command buffer to copy
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -88,11 +102,13 @@ void GraphicsUtility::CopyBuffer(const VkDevice device, const VkCommandPool comm
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; //used only once
     vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
-    VkBufferCopy copyRegion = {};
-    copyRegion.srcOffset = 0; // Optional
-    copyRegion.dstOffset = 0; // Optional
-    copyRegion.size = size;
-    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+    return commandBuffer;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void GraphicsUtility::EndAndSubmitOneTimeCommandBuffer(const VkDevice device, const VkCommandPool commandPool, 
+                                                       VkQueue queue, VkCommandBuffer commandBuffer) 
+{
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo = {};
@@ -101,8 +117,6 @@ void GraphicsUtility::CopyBuffer(const VkDevice device, const VkCommandPool comm
     submitInfo.pCommandBuffers = &commandBuffer;
 
     vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-
-    //The alternative is to use fence for doing multiple transfers and wait all of them to complete
     vkQueueWaitIdle(queue);
 
     vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
