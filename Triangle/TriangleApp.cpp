@@ -808,15 +808,15 @@ void TriangleApp::CreateVulkanGraphicsPipeline() {
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
     //Vertex Input
-    VkVertexInputBindingDescription  bindingDescription = TextureVertex::GetBindingDescription();
-    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = TextureVertex::GetAttributeDescriptions();
+    const VkVertexInputBindingDescription*  bindingDescription = TextureVertex::GetBindingDescription();
+    const std::vector<VkVertexInputAttributeDescription>* attributeDescriptions = TextureVertex::GetAttributeDescriptions();
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription; 
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data(); 
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions->size());
+    vertexInputInfo.pVertexBindingDescriptions = bindingDescription; 
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions->data(); 
 
     //Input Assembly
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};

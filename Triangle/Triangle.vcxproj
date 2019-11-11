@@ -160,6 +160,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="TextureVertex.cpp" />
     <ClCompile Include="TriangleApp.cpp" />
     <ClCompile Include="Utilities\FileUtility.cpp" />
     <ClCompile Include="Utilities\GraphicsUtility.cpp" />

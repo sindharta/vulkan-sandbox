@@ -32,6 +32,9 @@
     <ClCompile Include="Utilities\GraphicsUtility.cpp">
       <Filter>Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="TextureVertex.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TriangleApp.h">
@@ -69,17 +72,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\Triangle.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\Triangle.vert">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\Texture.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\Texture.vert">
-      <Filter>Shaders</Filter>
-    </None>
+    <CustomBuild Include="Shaders\Texture.frag" />
+    <CustomBuild Include="Shaders\Texture.vert" />
+    <CustomBuild Include="Shaders\Triangle.frag" />
+    <CustomBuild Include="Shaders\Triangle.vert" />
   </ItemGroup>
 </Project>
