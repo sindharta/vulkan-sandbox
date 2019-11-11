@@ -36,23 +36,26 @@ private:
     void CreateVulkanSurface();
     void PickVulkanPhysicalDevice();
     void CreateVulkanLogicalDevice();
-    void CreateVulkanSwapChain();
-    void CreateVulkanImageViews();
-    void CreateVulkanRenderPass();
+
     void CreateVulkanDescriptorSetLayout();
-    void CreateVulkanDescriptorPool();
-    void CreateVulkanDescriptorSets();
-    void CreateVulkanGraphicsPipeline();
-    void CreateVulkanFrameBuffers();
     void CreateVulkanCommandPool();
     void CreateVulkanVertexBuffer();
     void CreateVulkanIndexBuffer();
     void CreateVulkanTextureImage();
     void CreateVulkanTextureImageView();
     void CreateVulkanTextureSampler();
-    void CreateVulkanUniformBuffers();
-    void CreateVulkanCommandBuffers();
     void CreateVulkanSyncObjects();
+    
+    //Swap chain related
+    void CreateVulkanSwapChain();
+    void CreateVulkanImageViews();
+    void CreateVulkanRenderPass();
+    void CreateVulkanGraphicsPipeline();
+    void CreateVulkanFrameBuffers();
+    void CreateVulkanUniformBuffers();
+    void CreateVulkanDescriptorPool();
+    void CreateVulkanDescriptorSets();
+    void CreateVulkanCommandBuffers();
 
 
     void Loop(); 

@@ -115,10 +115,13 @@ VkImageView  GraphicsUtility::CreateImageView(const VkDevice device, const VkAll
 
 //---------------------------------------------------------------------------------------------------------------------
 
+//initialLayout must be either VK_IMAGE_LAYOUT_UNDEFINED or VK_IMAGE_LAYOUT_PREINITIALIZED
+//We use VK_IMAGE_LAYOUT_UNDEFINED here.
 void GraphicsUtility::CreateImage(const VkPhysicalDevice physicalDevice, const VkDevice device, 
     const VkAllocationCallbacks* allocator,
     const uint32_t width, const uint32_t height,
     const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties,
+    const VkFormat format,
     VkImage* image, VkDeviceMemory* imageMemory) 
 {
 
@@ -130,7 +133,7 @@ void GraphicsUtility::CreateImage(const VkPhysicalDevice physicalDevice, const V
     imageInfo.extent.depth = 1;
     imageInfo.mipLevels = 1;
     imageInfo.arrayLayers = 1;
-    imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imageInfo.format = format;
     imageInfo.tiling = tiling;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageInfo.usage = usage;
@@ -159,7 +162,7 @@ void GraphicsUtility::CreateImage(const VkPhysicalDevice physicalDevice, const V
 //---------------------------------------------------------------------------------------------------------------------
 
 void GraphicsUtility::DoImageLayoutTransition(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, 
-                                          VkImage* image, VkFormat format, 
+                                          VkImage image, VkFormat format, 
                                           VkImageLayout oldLayout, VkImageLayout newLayout) 
 { 
 
@@ -172,7 +175,7 @@ void GraphicsUtility::DoImageLayoutTransition(const VkDevice device, const VkCom
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; //for transferring queue family ownership
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     
-    barrier.image = *image;
+    barrier.image = image;
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = 1; //No mip map
@@ -284,5 +287,16 @@ void GraphicsUtility::EndAndSubmitOneTimeCommandBuffer(const VkDevice device, co
     vkQueueWaitIdle(queue);
 
     vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void GraphicsUtility::CopyCPUDataToBuffer(const VkDevice device, const void* src, const VkDeviceMemory destMemory,
+    const VkDeviceSize size) 
+{
+    void* data = nullptr;
+    vkMapMemory(device, destMemory, 0, size, 0, &data);
+    memcpy(data, src, size);
+    vkUnmapMemory(device, destMemory);
 
 }
