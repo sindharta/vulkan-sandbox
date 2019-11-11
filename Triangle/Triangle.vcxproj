@@ -168,6 +168,7 @@
   <ItemGroup>
     <ClInclude Include="ColorVertex.h" />
     <ClInclude Include="Config.h" />
+    <ClInclude Include="Macros.h" />
     <ClInclude Include="TextureVertex.h" />
     <ClInclude Include="MVPUniform.h" />
     <ClInclude Include="PhysicalDeviceSurfaceInfo.h" />

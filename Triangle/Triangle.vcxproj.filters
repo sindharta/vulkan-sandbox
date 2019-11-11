@@ -64,6 +64,9 @@
     <ClInclude Include="TextureVertex.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Macros.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\Triangle.frag">

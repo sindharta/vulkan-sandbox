@@ -18,7 +18,7 @@
 #include "ColorVertex.h"    
 #include "TextureVertex.h"    
 #include "MVPUniform.h"    
-
+#include "Macros.h"
 
 VkAllocationCallbacks* g_allocator = nullptr; //Always use default allocator
 
@@ -64,13 +64,14 @@ static void WindowResizedCallback(GLFWwindow* window, int width, int height) {
 //---------------------------------------------------------------------------------------------------------------------
 
 TriangleApp::TriangleApp() 
-    : m_vulkanInstance(nullptr), m_vulkanSurface(nullptr)
-    , m_vulkanPhysicalDevice(VK_NULL_HANDLE), m_vulkanLogicalDevice(nullptr), m_vulkanGraphicsQueue(nullptr)
-    , m_vulkanSwapChain(nullptr), m_vulkanRenderPass(nullptr)
+    : m_vulkanInstance(VK_NULL_HANDLE), m_vulkanSurface(VK_NULL_HANDLE)
+    , m_vulkanPhysicalDevice(VK_NULL_HANDLE), m_vulkanLogicalDevice(VK_NULL_HANDLE)
+    , m_vulkanGraphicsQueue(VK_NULL_HANDLE)
+    , m_vulkanSwapChain(VK_NULL_HANDLE), m_vulkanRenderPass(VK_NULL_HANDLE)
     , m_vulkanDescriptorSetLayout(VK_NULL_HANDLE)
     , m_vulkanDescriptorPool(VK_NULL_HANDLE)
-    , m_vulkanPipelineLayout(nullptr), m_vulkanGraphicsPipeline(nullptr)
-    , m_vulkanCommandPool(nullptr), m_vulkanCurrentFrame(0), m_recreateSwapChainRequested(false)
+    , m_vulkanPipelineLayout(VK_NULL_HANDLE), m_vulkanGraphicsPipeline(VK_NULL_HANDLE)
+    , m_vulkanCommandPool(VK_NULL_HANDLE), m_vulkanCurrentFrame(0), m_recreateSwapChainRequested(false)
     , m_vulkanVB(VK_NULL_HANDLE), m_vulkanVBMemory(VK_NULL_HANDLE)
     , m_vulkanIB(VK_NULL_HANDLE), m_vulkanIBMemory(VK_NULL_HANDLE)
     , m_vulkanTextureImage(VK_NULL_HANDLE), m_vulkanTextureImageMemory(VK_NULL_HANDLE)
@@ -1329,78 +1330,38 @@ void TriangleApp::CleanUp() {
 
     CleanUpVulkanSwapChain();
     
-    if (VK_NULL_HANDLE != m_vulkanDescriptorSetLayout) {
-        vkDestroyDescriptorSetLayout(m_vulkanLogicalDevice, m_vulkanDescriptorSetLayout, g_allocator);
-        m_vulkanDescriptorSetLayout = VK_NULL_HANDLE;
-    }
+    SAFE_DESTROY_DESCRIPTOR_SET_LAYOUT(m_vulkanLogicalDevice,m_vulkanDescriptorSetLayout,g_allocator);
 
     //Textures
-    if (VK_NULL_HANDLE != m_vulkanTextureSampler) {
+    SAFE_DESTROY_SAMPLER(m_vulkanLogicalDevice,m_vulkanTextureSampler,g_allocator);
+    SAFE_DESTROY_IMAGE_VIEW(m_vulkanLogicalDevice, m_vulkanTextureImageView, g_allocator);
+    SAFE_DESTROY_IMAGE(m_vulkanLogicalDevice, m_vulkanTextureImage, g_allocator);
+    SAFE_FREE_MEMORY(m_vulkanLogicalDevice, m_vulkanTextureImageMemory, g_allocator);
 
-        vkDestroySampler(m_vulkanLogicalDevice, m_vulkanTextureSampler, g_allocator);
-        m_vulkanTextureSampler = VK_NULL_HANDLE;
-    }
-    if (VK_NULL_HANDLE != m_vulkanTextureImageView) {
-        vkDestroyImageView(m_vulkanLogicalDevice, m_vulkanTextureImageView, g_allocator);
-        m_vulkanTextureImageView = VK_NULL_HANDLE;
-    }
+    //Vertex and Index Buffers
+    SAFE_DESTROY_BUFFER(m_vulkanLogicalDevice, m_vulkanVB, g_allocator);
+    SAFE_FREE_MEMORY(m_vulkanLogicalDevice, m_vulkanVBMemory, g_allocator);
+    SAFE_DESTROY_BUFFER(m_vulkanLogicalDevice, m_vulkanIB, g_allocator);
+    SAFE_FREE_MEMORY(m_vulkanLogicalDevice, m_vulkanIBMemory, g_allocator);
 
-    if (VK_NULL_HANDLE!=m_vulkanTextureImage) {
-        vkDestroyImage(m_vulkanLogicalDevice, m_vulkanTextureImage, g_allocator);
-        m_vulkanTextureImage = VK_NULL_HANDLE;
-    }
-    if (VK_NULL_HANDLE!=m_vulkanTextureImageMemory) {
-        vkFreeMemory(m_vulkanLogicalDevice, m_vulkanTextureImageMemory, g_allocator);
-        m_vulkanTextureImageMemory = VK_NULL_HANDLE;
-    }
+    SAFE_DESTROY_COMMAND_POOL(m_vulkanLogicalDevice, m_vulkanCommandPool, g_allocator);
 
-    //Vertex Buffers
-    if (VK_NULL_HANDLE != m_vulkanVB) {
-        vkDestroyBuffer(m_vulkanLogicalDevice, m_vulkanVB, g_allocator);
-        m_vulkanVB = VK_NULL_HANDLE;
-    }
-    if (VK_NULL_HANDLE != m_vulkanVBMemory) {
-        vkFreeMemory(m_vulkanLogicalDevice, m_vulkanVBMemory, g_allocator);
-        m_vulkanVBMemory = VK_NULL_HANDLE;
-    }
+    m_vulkanGraphicsQueue = VK_NULL_HANDLE;
+    m_vulkanPresentationQueue = VK_NULL_HANDLE;
 
-    //Index Buffers
-    if (VK_NULL_HANDLE != m_vulkanIB) {
-        vkDestroyBuffer(m_vulkanLogicalDevice, m_vulkanIB, g_allocator);
-        m_vulkanVB = VK_NULL_HANDLE;
-    }
-    if (VK_NULL_HANDLE != m_vulkanIBMemory) {
-        vkFreeMemory(m_vulkanLogicalDevice, m_vulkanIBMemory, g_allocator);
-        m_vulkanIBMemory = VK_NULL_HANDLE;
-    }
-
-    if (nullptr != m_vulkanCommandPool) {
-        vkDestroyCommandPool(m_vulkanLogicalDevice, m_vulkanCommandPool, g_allocator);
-        m_vulkanCommandPool = nullptr;
-    }
-
-
-    m_vulkanGraphicsQueue = nullptr;
-    m_vulkanPresentationQueue = nullptr;
-
-
-
-    if (nullptr != m_vulkanLogicalDevice) {
-        vkDestroyDevice(m_vulkanLogicalDevice, g_allocator);
-        m_vulkanLogicalDevice = nullptr;    
-    }
+    SAFE_DESTROY_DEVICE(m_vulkanLogicalDevice, g_allocator);
 
     if (nullptr != m_vulkanInstance) {
 
         if (nullptr != m_vulkanSurface) {
             vkDestroySurfaceKHR(m_vulkanInstance, m_vulkanSurface, g_allocator);
-            m_vulkanSurface = nullptr;
+            m_vulkanSurface = VK_NULL_HANDLE;
         }
 #ifdef ENABLE_VULKAN_DEBUG
         m_vulkanDebug.Shutdown(m_vulkanInstance);
 #endif
         vkDestroyInstance(m_vulkanInstance, g_allocator);
-        m_vulkanInstance = nullptr;
+        m_vulkanInstance = VK_NULL_HANDLE;
     }
 
     if (nullptr != m_window) {
@@ -1426,10 +1387,7 @@ void TriangleApp::CleanUpVulkanSwapChain() {
     m_vulkanUniformBuffers.clear();
     m_vulkanUniformBuffersMemory.clear();
 
-    if (VK_NULL_HANDLE!=m_vulkanDescriptorPool) {
-        vkDestroyDescriptorPool(m_vulkanLogicalDevice, m_vulkanDescriptorPool, g_allocator);
-        m_vulkanDescriptorPool = VK_NULL_HANDLE;
-    }
+    SAFE_DESTROY_DESCRIPTOR_POOL(m_vulkanLogicalDevice, m_vulkanDescriptorPool, g_allocator);
 
     for (VkFramebuffer& framebuffer : m_vulkanSwapChainFramebuffers) {
         vkDestroyFramebuffer(m_vulkanLogicalDevice, framebuffer, g_allocator);
@@ -1441,22 +1399,8 @@ void TriangleApp::CleanUpVulkanSwapChain() {
     }
     m_vulkanSwapChainImages.clear();
 
-
-    if (nullptr != m_vulkanGraphicsPipeline) {
-        vkDestroyPipeline(m_vulkanLogicalDevice, m_vulkanGraphicsPipeline, g_allocator);
-        m_vulkanGraphicsPipeline = nullptr;
-    }
-
-    if (nullptr != m_vulkanPipelineLayout) {
-        vkDestroyPipelineLayout(m_vulkanLogicalDevice, m_vulkanPipelineLayout, g_allocator);
-        m_vulkanPipelineLayout = nullptr;
-    }
-
-    if (nullptr != m_vulkanRenderPass) {
-        vkDestroyRenderPass(m_vulkanLogicalDevice, m_vulkanRenderPass, g_allocator);
-        m_vulkanRenderPass = nullptr;
-    }
-    if (nullptr!= m_vulkanSwapChain) {
-        vkDestroySwapchainKHR(m_vulkanLogicalDevice, m_vulkanSwapChain, g_allocator);
-    }
+    SAFE_DESTROY_PIPELINE(m_vulkanLogicalDevice, m_vulkanGraphicsPipeline, g_allocator);
+    SAFE_DESTROY_PIPELINE_LAYOUT(m_vulkanLogicalDevice, m_vulkanPipelineLayout, g_allocator);
+    SAFE_DESTROY_RENDER_PASS(m_vulkanLogicalDevice, m_vulkanRenderPass, g_allocator);
+    SAFE_DESTROY_SWAP_CHAIN(m_vulkanLogicalDevice, m_vulkanSwapChain, g_allocator);
 }
