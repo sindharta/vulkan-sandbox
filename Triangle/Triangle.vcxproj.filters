@@ -67,14 +67,22 @@
     <ClInclude Include="TextureVertex.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Macros.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="Utilities\Macros.h">
+      <Filter>Utilities</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="Shaders\Texture.frag" />
-    <CustomBuild Include="Shaders\Texture.vert" />
-    <CustomBuild Include="Shaders\Triangle.frag" />
-    <CustomBuild Include="Shaders\Triangle.vert" />
+    <CustomBuild Include="Shaders\Texture.frag">
+      <Filter>Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\Texture.vert">
+      <Filter>Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\Triangle.frag">
+      <Filter>Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\Triangle.vert">
+      <Filter>Shaders</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

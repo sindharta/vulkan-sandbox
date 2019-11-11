@@ -169,7 +169,6 @@
   <ItemGroup>
     <ClInclude Include="ColorVertex.h" />
     <ClInclude Include="Config.h" />
-    <ClInclude Include="Macros.h" />
     <ClInclude Include="TextureVertex.h" />
     <ClInclude Include="MVPUniform.h" />
     <ClInclude Include="PhysicalDeviceSurfaceInfo.h" />
@@ -177,6 +176,7 @@
     <ClInclude Include="TriangleApp.h" />
     <ClInclude Include="Utilities\FileUtility.h" />
     <ClInclude Include="Utilities\GraphicsUtility.h" />
+    <ClInclude Include="Utilities\Macros.h" />
     <ClInclude Include="VulkanDebugMessenger.h" />
   </ItemGroup>
   <ItemGroup>

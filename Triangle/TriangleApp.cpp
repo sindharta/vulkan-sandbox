@@ -14,11 +14,11 @@
 
 #include "Utilities/FileUtility.h"      //ReadFileInto()
 #include "Utilities/GraphicsUtility.h"    //CreateShaderModule()    
+#include "Utilities/Macros.h"
 
 #include "ColorVertex.h"    
 #include "TextureVertex.h"    
 #include "MVPUniform.h"    
-#include "Macros.h"
 
 VkAllocationCallbacks* g_allocator = nullptr; //Always use default allocator
 
