@@ -159,7 +159,7 @@ void GraphicsUtility::CreateImage(const VkPhysicalDevice physicalDevice, const V
 //---------------------------------------------------------------------------------------------------------------------
 
 void GraphicsUtility::DoImageLayoutTransition(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, 
-                                          VkImage* image, VkFormat format, 
+                                          VkImage image, VkFormat format, 
                                           VkImageLayout oldLayout, VkImageLayout newLayout) 
 { 
 
@@ -172,7 +172,7 @@ void GraphicsUtility::DoImageLayoutTransition(const VkDevice device, const VkCom
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; //for transferring queue family ownership
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     
-    barrier.image = *image;
+    barrier.image = image;
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = 1; //No mip map

@@ -420,7 +420,7 @@ void TriangleApp::CreateVulkanTextureImage() {
 
     //Transition the texture image to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
     GraphicsUtility::DoImageLayoutTransition(m_vulkanLogicalDevice, m_vulkanCommandPool, m_vulkanGraphicsQueue, 
-        &m_vulkanTextureImage, VK_FORMAT_R8G8B8A8_UNORM, 
+        m_vulkanTextureImage, VK_FORMAT_R8G8B8A8_UNORM, 
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
     );
 
@@ -430,7 +430,7 @@ void TriangleApp::CreateVulkanTextureImage() {
 
     //one last transition to prepare it for shader access:
     GraphicsUtility::DoImageLayoutTransition(m_vulkanLogicalDevice, m_vulkanCommandPool, m_vulkanGraphicsQueue, 
-        &m_vulkanTextureImage, VK_FORMAT_R8G8B8A8_UNORM, 
+        m_vulkanTextureImage, VK_FORMAT_R8G8B8A8_UNORM, 
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
 

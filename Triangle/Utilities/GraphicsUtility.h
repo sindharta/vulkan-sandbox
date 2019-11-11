@@ -2,7 +2,6 @@
 #include <vulkan/vulkan.h> 
 #include <vector>
 
-//[TODO-sin: 2019-11-8] No need to pass pointers.
 class GraphicsUtility {
     public:
         static VkShaderModule CreateShaderModule(const VkDevice device, const VkAllocationCallbacks* allocator, 
@@ -32,7 +31,7 @@ class GraphicsUtility {
                                 VkImage* image, VkDeviceMemory* imageMemory);
 
         static void DoImageLayoutTransition(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, 
-                                          VkImage* image, VkFormat format, 
+                                          VkImage image, VkFormat format, 
                                           VkImageLayout oldLayout, VkImageLayout newLayout); 
         
         static void CopyBufferToImage(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, 
