@@ -783,7 +783,6 @@ void TriangleApp::CreateVulkanDescriptorSets() {
 //---------------------------------------------------------------------------------------------------------------------
 
 void TriangleApp::CreateVulkanGraphicsPipeline() {
-    //[TODO-sin: 2019-11-6] Add a post build step to compile source code to bytecode 
     std::vector<char> vertShaderCode, fragShaderCode;
     FileUtility::ReadFileInto("Shaders/Texture.vert.spv", &vertShaderCode);
     FileUtility::ReadFileInto("Shaders/Texture.frag.spv", &fragShaderCode);
