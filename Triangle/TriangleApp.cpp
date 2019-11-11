@@ -137,23 +137,17 @@ void TriangleApp::InitVulkan() {
     CreateVulkanSurface();
     PickVulkanPhysicalDevice();
     CreateVulkanLogicalDevice();
-    CreateVulkanSwapChain();
-    CreateVulkanImageViews();
-    CreateVulkanRenderPass();
     CreateVulkanDescriptorSetLayout();
-    CreateVulkanGraphicsPipeline();
-    CreateVulkanFrameBuffers();
     CreateVulkanCommandPool();
     CreateVulkanTextureImage();
     CreateVulkanTextureImageView();
     CreateVulkanTextureSampler();
     CreateVulkanVertexBuffer();
     CreateVulkanIndexBuffer();
-    CreateVulkanUniformBuffers();
-    CreateVulkanDescriptorPool();
-    CreateVulkanDescriptorSets();
-    CreateVulkanCommandBuffers();
     CreateVulkanSyncObjects();
+
+    //Swap
+    RecreateVulkanSwapChain();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -169,7 +163,6 @@ void TriangleApp::RecreateVulkanSwapChain() {
 
     vkDeviceWaitIdle(m_vulkanLogicalDevice);
 
-    //[TODO-sin: 2019-11-7] Remove duplicates in InitVulkan()
     CleanUpVulkanSwapChain();
     CreateVulkanSwapChain();
     CreateVulkanImageViews();
@@ -181,6 +174,8 @@ void TriangleApp::RecreateVulkanSwapChain() {
     CreateVulkanDescriptorSets();
     CreateVulkanCommandBuffers();
     m_recreateSwapChainRequested = false;
+
+    m_vulkanImagesInFlight.resize(m_vulkanSwapChainImages.size(), VK_NULL_HANDLE);
 
 }
 
@@ -434,8 +429,6 @@ void TriangleApp::CreateVulkanDescriptorSetLayout() {
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
     layoutInfo.pBindings = bindings.data();
-
-
 
     if (vkCreateDescriptorSetLayout(m_vulkanLogicalDevice, &layoutInfo, g_allocator, &m_vulkanDescriptorSetLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create descriptor set layout!");
@@ -966,7 +959,6 @@ void TriangleApp::CreateVulkanSyncObjects() {
     m_vulkanImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     m_vulkanRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     m_vulkanInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-    m_vulkanImagesInFlight.resize(m_vulkanSwapChainImages.size(), VK_NULL_HANDLE);
 
     VkSemaphoreCreateInfo semaphoreInfo = {};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
