@@ -286,3 +286,14 @@ void GraphicsUtility::EndAndSubmitOneTimeCommandBuffer(const VkDevice device, co
     vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 
 }
+
+//---------------------------------------------------------------------------------------------------------------------
+void GraphicsUtility::CopyCPUDataToBuffer(const VkDevice device, const void* src, const VkDeviceMemory destMemory,
+    const VkDeviceSize size) 
+{
+    void* data = nullptr;
+    vkMapMemory(device, destMemory, 0, size, 0, &data);
+    memcpy(data, src, size);
+    vkUnmapMemory(device, destMemory);
+
+}

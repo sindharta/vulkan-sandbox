@@ -340,10 +340,7 @@ void TriangleApp::CreateVulkanVertexBuffer() {
         &stagingBuffer, &stagingBufferMemory);
 
     //Filling Vertex Buffer
-    void* data = nullptr;
-    vkMapMemory(m_vulkanLogicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, g_texVertices.data(), bufferSize);
-    vkUnmapMemory(m_vulkanLogicalDevice, stagingBufferMemory);
+    GraphicsUtility::CopyCPUDataToBuffer(m_vulkanLogicalDevice,g_texVertices.data(),stagingBufferMemory,bufferSize);
 
     //VK_BUFFER_USAGE_TRANSFER_DST_BIT: destination in a memory transfer
     GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice, g_allocator, bufferSize, 
@@ -374,10 +371,7 @@ void TriangleApp::CreateVulkanIndexBuffer() {
         &stagingBuffer, &stagingBufferMemory
     );
 
-    void* data;
-    vkMapMemory(m_vulkanLogicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, g_indices.data(), (size_t) bufferSize);
-    vkUnmapMemory(m_vulkanLogicalDevice, stagingBufferMemory);
+    GraphicsUtility::CopyCPUDataToBuffer(m_vulkanLogicalDevice,g_indices.data(),stagingBufferMemory,bufferSize);
 
     GraphicsUtility::CreateBuffer(m_vulkanPhysicalDevice, m_vulkanLogicalDevice,g_allocator, bufferSize, 
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
@@ -411,11 +405,8 @@ void TriangleApp::CreateVulkanTextureImage() {
         &stagingBuffer, &stagingBufferMemory
     );
 
-    //[TODO-sin: 2019-11-8] Put this into a function
-    void* data;
-    vkMapMemory(m_vulkanLogicalDevice, stagingBufferMemory, 0, imageSize, 0, &data);
-    memcpy(data, pixels, static_cast<size_t>(imageSize));
-    vkUnmapMemory(m_vulkanLogicalDevice, stagingBufferMemory);
+    GraphicsUtility::CopyCPUDataToBuffer(m_vulkanLogicalDevice,pixels,stagingBufferMemory,imageSize);
+
     stbi_image_free(pixels);
 
     //[TODO-sin: 2019-11-8] Why don't we create an image with optimal layout from the beginning ?
@@ -1157,10 +1148,8 @@ void TriangleApp::UpdateVulkanUniformBuffers(uint32_t imageIndex) {
     mvp.ProjMat = glm::perspective(glm::radians(45.0f), m_vulkanSwapChainExtent.width / static_cast<float> (m_vulkanSwapChainExtent.height), 0.1f, 10.0f);
     mvp.ProjMat[1][1] *= -1; //flip Y axis
 
-    void* data;
-    vkMapMemory(m_vulkanLogicalDevice, m_vulkanUniformBuffersMemory[imageIndex], 0, sizeof(mvp), 0, &data);
-    memcpy(data, &mvp, sizeof(mvp));
-    vkUnmapMemory(m_vulkanLogicalDevice, m_vulkanUniformBuffersMemory[imageIndex]);
+    GraphicsUtility::CopyCPUDataToBuffer(m_vulkanLogicalDevice, &mvp, 
+        m_vulkanUniformBuffersMemory[imageIndex],sizeof(mvp));
 }
 
 

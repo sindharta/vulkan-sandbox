@@ -19,6 +19,7 @@ class GraphicsUtility {
 
         static void CopyBuffer(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, 
                                const VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+                               
 
         static VkImageView  CreateImageView(const VkDevice device, const VkAllocationCallbacks* allocator, 
                                             const VkImage image, const VkFormat format);
@@ -43,6 +44,10 @@ class GraphicsUtility {
         static void  EndAndSubmitOneTimeCommandBuffer(const VkDevice device, const VkCommandPool commandPool, 
                                                       const VkQueue queue, VkCommandBuffer commandBuffer);
 
+        //The destMemory must have been created using 
+        //VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT properties
+        static void CopyCPUDataToBuffer(const VkDevice device, const void* src, const VkDeviceMemory destMemory, 
+                               const VkDeviceSize size);
 
 
 };
