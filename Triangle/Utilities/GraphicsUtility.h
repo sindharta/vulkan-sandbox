@@ -27,7 +27,7 @@ class GraphicsUtility {
                                 const VkAllocationCallbacks* allocator,
                                 const uint32_t width, const uint32_t height, 
                                 const VkImageTiling tiling, const VkImageUsageFlags usage,
-                                const VkMemoryPropertyFlags properties, 
+                                const VkMemoryPropertyFlags properties, const VkFormat format,
                                 VkImage* image, VkDeviceMemory* imageMemory);
 
         static void DoImageLayoutTransition(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, 

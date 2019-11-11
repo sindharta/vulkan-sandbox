@@ -409,13 +409,12 @@ void TriangleApp::CreateVulkanTextureImage() {
 
     stbi_image_free(pixels);
 
-    //[TODO-sin: 2019-11-8] Why don't we create an image with optimal layout from the beginning ?
     //Create Image buffer. 
     //VK_IMAGE_USAGE_SAMPLED_BIT: to allow access from the shader
     GraphicsUtility::CreateImage(m_vulkanPhysicalDevice,m_vulkanLogicalDevice,g_allocator, texWidth, texHeight,
         VK_IMAGE_TILING_OPTIMAL,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,&m_vulkanTextureImage,&m_vulkanTextureImageMemory
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,VK_FORMAT_R8G8B8A8_UNORM, &m_vulkanTextureImage,&m_vulkanTextureImageMemory
     );
 
     //Transition the texture image to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL

@@ -115,10 +115,13 @@ VkImageView  GraphicsUtility::CreateImageView(const VkDevice device, const VkAll
 
 //---------------------------------------------------------------------------------------------------------------------
 
+//initialLayout must be either VK_IMAGE_LAYOUT_UNDEFINED or VK_IMAGE_LAYOUT_PREINITIALIZED
+//We use VK_IMAGE_LAYOUT_UNDEFINED here.
 void GraphicsUtility::CreateImage(const VkPhysicalDevice physicalDevice, const VkDevice device, 
     const VkAllocationCallbacks* allocator,
     const uint32_t width, const uint32_t height,
     const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties,
+    const VkFormat format,
     VkImage* image, VkDeviceMemory* imageMemory) 
 {
 
@@ -130,7 +133,7 @@ void GraphicsUtility::CreateImage(const VkPhysicalDevice physicalDevice, const V
     imageInfo.extent.depth = 1;
     imageInfo.mipLevels = 1;
     imageInfo.arrayLayers = 1;
-    imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imageInfo.format = format;
     imageInfo.tiling = tiling;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageInfo.usage = usage;
