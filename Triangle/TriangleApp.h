@@ -21,7 +21,7 @@ public:
 
 private:
     void InitVulkan();
-    void RecreateVulkanSwapChain();
+    void RecreateSwapChain();
 
 #ifdef ENABLE_VULKAN_DEBUG
     void InitVulkanDebugInstance(const VkApplicationInfo& appInfo, const std::vector<const char*>& extensions);
@@ -32,28 +32,28 @@ private:
 
 #endif //ENABLE_VULKAN_DEBUG
     
-    void PickVulkanPhysicalDevice();
-    void CreateVulkanLogicalDevice();
+    void PickPhysicalDevice();
+    void CreateLogicalDevice();
 
-    void CreateVulkanDescriptorSetLayout();
-    void CreateVulkanCommandPool();
-    void CreateVulkanVertexBuffer();
-    void CreateVulkanIndexBuffer();
-    void CreateVulkanTextureImage();
-    void CreateVulkanTextureImageView();
-    void CreateVulkanTextureSampler();
-    void CreateVulkanSyncObjects();
+    void CreateDescriptorSetLayout();
+    void CreateCommandPool();
+    void CreateVertexBuffer();
+    void CreateIndexBuffer();
+    void CreateTextureImage();
+    void CreateTextureImageView();
+    void CreateTextureSampler();
+    void CreateSyncObjects();
     
     //Swap chain related
-    void CreateVulkanSwapChain();
-    void CreateVulkanImageViews();
-    void CreateVulkanRenderPass();
-    void CreateVulkanGraphicsPipeline();
-    void CreateVulkanFrameBuffers();
-    void CreateVulkanUniformBuffers();
-    void CreateVulkanDescriptorPool();
-    void CreateVulkanDescriptorSets();
-    void CreateVulkanCommandBuffers();
+    void CreateSwapChain();
+    void CreateImageViews();
+    void CreateRenderPass();
+    void CreateGraphicsPipeline();
+    void CreateFrameBuffers();
+    void CreateUniformBuffers();
+    void CreateDescriptorPool();
+    void CreateDescriptorSets();
+    void CreateCommandBuffers();
 
 
     void Loop(); 
@@ -71,8 +71,8 @@ private:
 
 
     //Swap chain
-    static VkSurfaceFormatKHR PickVulkanSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>* availableFormats);
-    static VkPresentModeKHR   PickVulkanSwapPresentMode(const std::vector<VkPresentModeKHR>* availableModes);
+    static VkSurfaceFormatKHR PickSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>* availableFormats);
+    static VkPresentModeKHR   PickSwapPresentMode(const std::vector<VkPresentModeKHR>* availableModes);
 
     void CleanUpVulkanSwapChain();
 

@@ -131,24 +131,24 @@ void TriangleApp::InitVulkan() {
 #endif
 
     m_window->CreateVulkanSurfaceInto(m_vulkanInstance, g_allocator, &m_vulkanSurface);
-    PickVulkanPhysicalDevice();
-    CreateVulkanLogicalDevice();
-    CreateVulkanDescriptorSetLayout();
-    CreateVulkanCommandPool();
-    CreateVulkanTextureImage();
-    CreateVulkanTextureImageView();
-    CreateVulkanTextureSampler();
-    CreateVulkanVertexBuffer();
-    CreateVulkanIndexBuffer();
-    CreateVulkanSyncObjects();
+    PickPhysicalDevice();
+    CreateLogicalDevice();
+    CreateDescriptorSetLayout();
+    CreateCommandPool();
+    CreateTextureImage();
+    CreateTextureImageView();
+    CreateTextureSampler();
+    CreateVertexBuffer();
+    CreateIndexBuffer();
+    CreateSyncObjects();
 
     //Swap
-    RecreateVulkanSwapChain();
+    RecreateSwapChain();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void TriangleApp::RecreateVulkanSwapChain() {
+void TriangleApp::RecreateSwapChain() {
 
     
     m_window->WaitInMinimizedState(); //Handle window minimization
@@ -156,15 +156,15 @@ void TriangleApp::RecreateVulkanSwapChain() {
     vkDeviceWaitIdle(m_vulkanLogicalDevice);
 
     CleanUpVulkanSwapChain();
-    CreateVulkanSwapChain();
-    CreateVulkanImageViews();
-    CreateVulkanRenderPass();
-    CreateVulkanGraphicsPipeline();
-    CreateVulkanFrameBuffers();
-    CreateVulkanUniformBuffers();
-    CreateVulkanDescriptorPool();
-    CreateVulkanDescriptorSets();
-    CreateVulkanCommandBuffers();
+    CreateSwapChain();
+    CreateImageViews();
+    CreateRenderPass();
+    CreateGraphicsPipeline();
+    CreateFrameBuffers();
+    CreateUniformBuffers();
+    CreateDescriptorPool();
+    CreateDescriptorSets();
+    CreateCommandBuffers();
     m_recreateSwapChainRequested = false;
 
     m_vulkanImagesInFlight.resize(m_vulkanSwapChainImages.size(), VK_NULL_HANDLE);
@@ -173,7 +173,7 @@ void TriangleApp::RecreateVulkanSwapChain() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void TriangleApp::PickVulkanPhysicalDevice()  {
+void TriangleApp::PickPhysicalDevice()  {
     //Pick physical device
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(m_vulkanInstance, &deviceCount, nullptr);
@@ -218,7 +218,7 @@ void TriangleApp::PickVulkanPhysicalDevice()  {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void TriangleApp::CreateVulkanLogicalDevice()  {
+void TriangleApp::CreateLogicalDevice()  {
 
     //Create device queue for all required queues
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -265,7 +265,7 @@ void TriangleApp::CreateVulkanLogicalDevice()  {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void TriangleApp::CreateVulkanDescriptorSetLayout() {
+void TriangleApp::CreateDescriptorSetLayout() {
     //Uniform buffer
     VkDescriptorSetLayoutBinding uboLayoutBinding = {};
     uboLayoutBinding.binding = 0;
@@ -296,7 +296,7 @@ void TriangleApp::CreateVulkanDescriptorSetLayout() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void TriangleApp::CreateVulkanCommandPool() {
+void TriangleApp::CreateCommandPool() {
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.queueFamilyIndex = m_vulkanQueueFamilyIndices.GetGraphicsIndex();
@@ -308,7 +308,7 @@ void TriangleApp::CreateVulkanCommandPool() {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void TriangleApp::CreateVulkanVertexBuffer() {
+void TriangleApp::CreateVertexBuffer() {
 
     const VkDeviceSize bufferSize = sizeof(g_texVertices[0]) * g_texVertices.size();
 
@@ -344,7 +344,7 @@ void TriangleApp::CreateVulkanVertexBuffer() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void TriangleApp::CreateVulkanIndexBuffer() {
+void TriangleApp::CreateIndexBuffer() {
     const VkDeviceSize bufferSize = sizeof(g_indices[0]) * g_indices.size();
 
     VkBuffer stagingBuffer;
@@ -371,7 +371,7 @@ void TriangleApp::CreateVulkanIndexBuffer() {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void TriangleApp::CreateVulkanTextureImage() {
+void TriangleApp::CreateTextureImage() {
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load("../Resources/Textures/statue.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     const VkDeviceSize imageSize = texWidth * texHeight * 4;
@@ -424,14 +424,14 @@ void TriangleApp::CreateVulkanTextureImage() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void TriangleApp::CreateVulkanTextureImageView() {
+void TriangleApp::CreateTextureImageView() {
     m_vulkanTextureImageView = GraphicsUtility::CreateImageView(m_vulkanLogicalDevice, 
         g_allocator, m_vulkanTextureImage, VK_FORMAT_R8G8B8A8_UNORM);
 
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void TriangleApp::CreateVulkanTextureSampler() {
+void TriangleApp::CreateTextureSampler() {
     VkSamplerCreateInfo samplerInfo = {};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -456,7 +456,7 @@ void TriangleApp::CreateVulkanTextureSampler() {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void TriangleApp::CreateVulkanUniformBuffers() {
+void TriangleApp::CreateUniformBuffers() {
 
     const VkDeviceSize bufferSize = sizeof(MVPUniform);
     const uint32_t numImages = static_cast<uint32_t>(m_vulkanSwapChainImages.size());
@@ -477,7 +477,7 @@ void TriangleApp::CreateVulkanUniformBuffers() {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void TriangleApp::CreateVulkanCommandBuffers() {
+void TriangleApp::CreateCommandBuffers() {
     const uint32_t numFrameBuffers = static_cast<uint32_t>(m_vulkanSwapChainFramebuffers.size());
     m_vulkanCommandBuffers.resize(numFrameBuffers);
 
@@ -536,7 +536,7 @@ void TriangleApp::CreateVulkanCommandBuffers() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void TriangleApp::CreateVulkanSyncObjects() {
+void TriangleApp::CreateSyncObjects() {
 
     m_vulkanImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     m_vulkanRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -562,13 +562,13 @@ void TriangleApp::CreateVulkanSyncObjects() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void TriangleApp::CreateVulkanSwapChain() {
+void TriangleApp::CreateSwapChain() {
     //Decide parameters
     PhysicalDeviceSurfaceInfo surfaceInfo = QueryVulkanPhysicalDeviceSurfaceInfo(m_vulkanPhysicalDevice, m_vulkanSurface);
     VkSurfaceCapabilitiesKHR& capabilities = surfaceInfo.Capabilities;
 
-    VkSurfaceFormatKHR surfaceFormat = PickVulkanSwapSurfaceFormat(&surfaceInfo.Formats);
-    VkPresentModeKHR presentMode = PickVulkanSwapPresentMode(&surfaceInfo.PresentModes);
+    const VkSurfaceFormatKHR surfaceFormat = PickSwapSurfaceFormat(&surfaceInfo.Formats);
+    const VkPresentModeKHR presentMode = PickSwapPresentMode(&surfaceInfo.PresentModes);
 
     m_vulkanSwapChainExtent = m_window->SelectVulkanSwapExtent(capabilities);
     
@@ -619,7 +619,7 @@ void TriangleApp::CreateVulkanSwapChain() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void TriangleApp::CreateVulkanImageViews() {
+void TriangleApp::CreateImageViews() {
     //handles to swap chain images
     uint32_t imageCount = 0;
     vkGetSwapchainImagesKHR(m_vulkanLogicalDevice, m_vulkanSwapChain, &imageCount, nullptr);
@@ -643,7 +643,7 @@ void TriangleApp::CreateVulkanImageViews() {
 
 //Renderpass is an orchestration of image data.  It helps the GPU better understand when weÅfll be drawing, 
 //what we'll be drawing to, and what it should do between render passes.
-void TriangleApp::CreateVulkanRenderPass() {
+void TriangleApp::CreateRenderPass() {
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = m_vulkanSwapChainSurfaceFormat;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; //No multisampling
@@ -690,7 +690,7 @@ void TriangleApp::CreateVulkanRenderPass() {
 //---------------------------------------------------------------------------------------------------------------------
 
 //A pool to create descriptor set to bind uniform buffers when drawing frame
-void TriangleApp::CreateVulkanDescriptorPool() {
+void TriangleApp::CreateDescriptorPool() {
 
     const uint32_t numImages = static_cast<uint32_t>(m_vulkanSwapChainImages.size());
 
@@ -713,7 +713,7 @@ void TriangleApp::CreateVulkanDescriptorPool() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void TriangleApp::CreateVulkanDescriptorSets() {
+void TriangleApp::CreateDescriptorSets() {
     const uint32_t numImages = static_cast<uint32_t>(m_vulkanSwapChainImages.size());
 
     std::vector<VkDescriptorSetLayout> layouts(numImages, m_vulkanDescriptorSetLayout);
@@ -766,7 +766,7 @@ void TriangleApp::CreateVulkanDescriptorSets() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void TriangleApp::CreateVulkanGraphicsPipeline() {
+void TriangleApp::CreateGraphicsPipeline() {
     std::vector<char> vertShaderCode, fragShaderCode;
     FileUtility::ReadFileInto("Shaders/Texture.vert.spv", &vertShaderCode);
     FileUtility::ReadFileInto("Shaders/Texture.frag.spv", &fragShaderCode);
@@ -928,7 +928,7 @@ void TriangleApp::CreateVulkanGraphicsPipeline() {
 
 //VkFrameBuffer is what maps the actual attachments (swap chain images) to a RenderPass. 
 //The attachment definition was defined when creating the RenderPass
-void TriangleApp::CreateVulkanFrameBuffers() {
+void TriangleApp::CreateFrameBuffers() {
     const uint32_t numImageViews = static_cast<uint32_t>(m_vulkanSwapChainImageViews.size());
     m_vulkanSwapChainFramebuffers.resize(numImageViews);
     
@@ -1053,7 +1053,7 @@ void TriangleApp::DrawFrame() {
         const VkResult result = vkAcquireNextImageKHR(m_vulkanLogicalDevice, m_vulkanSwapChain, UINT64_MAX, 
                                                       curImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-            RecreateVulkanSwapChain();
+            RecreateSwapChain();
             return;
         } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
             throw std::runtime_error("failed to acquire swap chain image!");
@@ -1106,8 +1106,8 @@ void TriangleApp::DrawFrame() {
     {
         const VkResult result = vkQueuePresentKHR(m_vulkanPresentationQueue, &presentInfo);
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_recreateSwapChainRequested) {
-            //The recreateSwapChainRequested check is put here to make sure that the semaphores are in consistent state
-            RecreateVulkanSwapChain();
+            //The RecreateSwapChainRequested check is put here to make sure that the semaphores are in consistent state
+            RecreateSwapChain();
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
         }
@@ -1246,7 +1246,7 @@ bool TriangleApp::CheckDeviceExtensionSupport(const VkPhysicalDevice& device, co
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-VkSurfaceFormatKHR TriangleApp::PickVulkanSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>* availableFormats) {
+VkSurfaceFormatKHR TriangleApp::PickSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>* availableFormats) {
 
     for (const VkSurfaceFormatKHR& availableFormat : *availableFormats) {
         if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
@@ -1263,7 +1263,7 @@ VkSurfaceFormatKHR TriangleApp::PickVulkanSwapSurfaceFormat(const std::vector<Vk
 
 //---------------------------------------------------------------------------------------------------------------------
 
-VkPresentModeKHR TriangleApp::PickVulkanSwapPresentMode(const std::vector<VkPresentModeKHR>* availableModes) {
+VkPresentModeKHR TriangleApp::PickSwapPresentMode(const std::vector<VkPresentModeKHR>* availableModes) {
     for (const VkPresentModeKHR& availablePresentMode : *availableModes) {
         if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
             return availablePresentMode;
