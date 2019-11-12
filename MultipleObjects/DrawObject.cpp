@@ -8,6 +8,7 @@
 #include "Utilities/GraphicsUtility.h"
 
 #include "Texture.h"
+#include "Mesh.h"
 
 DrawObject::DrawObject() {
 
@@ -15,8 +16,9 @@ DrawObject::DrawObject() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void DrawObject::Init(const VkDevice device,VkAllocationCallbacks* allocator, const Texture* texture) 
+void DrawObject::Init(const VkDevice device,VkAllocationCallbacks* allocator, const Mesh* mesh, const Texture* texture) 
 {
+    m_mesh = mesh;
     m_texture = texture;
     m_mvpMat.ViewMat  = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 }
@@ -24,7 +26,8 @@ void DrawObject::Init(const VkDevice device,VkAllocationCallbacks* allocator, co
 //---------------------------------------------------------------------------------------------------------------------
 
 void DrawObject::CleanUp(const VkDevice device, VkAllocationCallbacks* allocator) {
-
+    m_mesh = nullptr;
+    m_texture = nullptr;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -54,6 +57,8 @@ void DrawObject::SetProj(const float perspective) {
     m_mvpMat.ProjMat = glm::perspective(glm::radians(45.0f), perspective, 0.1f, 10.0f);
     m_mvpMat.ProjMat[1][1] *= -1; //flip Y axis
 }
+
+//---------------------------------------------------------------------------------------------------------------------
 
 void DrawObject::UpdateUniformBuffers(const VkDevice device, const uint32_t imageIndex) {
 

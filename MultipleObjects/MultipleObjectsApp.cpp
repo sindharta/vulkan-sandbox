@@ -150,7 +150,7 @@ void MultipleObjectsApp::InitVulkan() {
     //Init draw objects
     m_drawObjects.resize(NUM_DRAW_OBJECTS);
     for (uint32_t i=0;i<NUM_DRAW_OBJECTS;++i) {
-        m_drawObjects[i].Init(m_logicalDevice, g_allocator, m_texture);
+        m_drawObjects[i].Init(m_logicalDevice, g_allocator, m_mesh, m_texture);
     }
     m_drawObjects[0].SetPos(0,0,0.5);
     m_drawObjects[1].SetPos(0,0,-0.5);
@@ -371,16 +371,19 @@ void MultipleObjectsApp::CreateCommandBuffers() {
 
         vkCmdBindPipeline(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
-        //Bind vertex and index buffers
-        VkBuffer vertexBuffers[] = { m_mesh->GetVertexBuffer() };
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(m_commandBuffers[i], 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(m_commandBuffers[i], m_mesh->GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT16);
 
         //Draw multiple objects
         const uint32_t numObjects = static_cast<uint32_t>(m_drawObjects.size());
         for (uint32_t j = 0; j < numObjects; ++j) {
             DrawObject& curDrawObject = m_drawObjects[j];
+            const Mesh* curMesh = curDrawObject.GetMesh();
+            //Bind vertex and index buffers
+
+            VkBuffer vertexBuffers[] = { curMesh->GetVertexBuffer() };
+            VkDeviceSize offsets[] = {0};
+            vkCmdBindVertexBuffers(m_commandBuffers[i], 0, 1, vertexBuffers, offsets);
+            vkCmdBindIndexBuffer(m_commandBuffers[i], curMesh->GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT16);
+
             const VkDescriptorSet& curDescriptorSet = curDrawObject.GetDescriptorSet(static_cast<uint32_t>(i));
             vkCmdBindDescriptorSets(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, 
                 m_pipelineLayout, 0, 1, &curDescriptorSet, 0, nullptr
