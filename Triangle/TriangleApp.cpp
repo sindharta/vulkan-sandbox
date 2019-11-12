@@ -767,9 +767,11 @@ void TriangleApp::CreateDescriptorSets() {
 //---------------------------------------------------------------------------------------------------------------------
 
 void TriangleApp::CreateGraphicsPipeline() {
+    #define SHADER_PATH "../Shared/Shaders/"
     std::vector<char> vertShaderCode, fragShaderCode;
-    FileUtility::ReadFileInto("Shaders/Texture.vert.spv", &vertShaderCode);
-    FileUtility::ReadFileInto("Shaders/Texture.frag.spv", &fragShaderCode);
+    FileUtility::ReadFileInto(SHADER_PATH "Texture.vert.spv", &vertShaderCode);
+    FileUtility::ReadFileInto(SHADER_PATH "Texture.frag.spv", &fragShaderCode);
+    #undef SHADER_PATH
 
     VkShaderModule vertShaderModule = GraphicsUtility::CreateShaderModule(m_vulkanLogicalDevice, g_allocator, vertShaderCode);
     VkShaderModule fragShaderModule = GraphicsUtility::CreateShaderModule(m_vulkanLogicalDevice, g_allocator, fragShaderCode);
