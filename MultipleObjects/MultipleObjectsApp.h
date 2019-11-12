@@ -5,16 +5,21 @@
 #include <vector>
 #include <map>
 
+//Shared
 #include "SharedConfig.h"
 #include "VulkanDebugMessenger.h"
-#include "QueueFamilyIndices.h"
 #include "PhysicalDeviceSurfaceInfo.h"
 
-class Window;
+#include "QueueFamilyIndices.h"
+#include "DrawObject.h"
 
-class TriangleApp {
+class Window;
+class Texture;
+class Mesh;
+
+class MultipleObjectsApp {
 public:
-    TriangleApp();
+    MultipleObjectsApp();
     void Run();
     void CleanUp();
     inline void RequestToRecreateSwapChain();
@@ -37,11 +42,8 @@ private:
 
     void CreateDescriptorSetLayout();
     void CreateCommandPool();
-    void CreateVertexBuffer();
-    void CreateIndexBuffer();
-    void CreateTextureImage();
-    void CreateTextureImageView();
-    void CreateTextureSampler();
+    //void CreateVertexBuffer();
+    //void CreateIndexBuffer();
     void CreateSyncObjects();
     
     //Swap chain related
@@ -50,9 +52,7 @@ private:
     void CreateRenderPass();
     void CreateGraphicsPipeline();
     void CreateFrameBuffers();
-    void CreateUniformBuffers();
     void CreateDescriptorPool();
-    void CreateDescriptorSets();
     void CreateCommandBuffers();
 
 
@@ -87,19 +87,15 @@ private:
     VkRenderPass                    m_renderPass;
     VkDescriptorSetLayout           m_descriptorSetLayout;
     VkDescriptorPool                m_descriptorPool; //A pool to create descriptor set to bind uniform buffers 
-    std::vector<VkDescriptorSet>    m_descriptorSets; //To bind uniform buffers
+
+    std::vector<DrawObject>         m_drawObjects; // multiple objects
+
     VkPipelineLayout                m_pipelineLayout; //to pass uniform values to shaders
     VkPipeline                      m_graphicsPipeline;
     VkCommandPool                   m_commandPool;
 
-    VkBuffer            m_vb;
-    VkDeviceMemory      m_vbMemory;
-    VkBuffer            m_ib;
-    VkDeviceMemory      m_ibMemory;
-    VkImage             m_textureImage;
-    VkDeviceMemory      m_textureImageMemory;
-    VkImageView         m_textureImageView;
-    VkSampler           m_textureSampler;
+    Mesh*                       m_mesh;
+    Texture*                    m_texture;
 
     std::vector<VkCommandBuffer> m_commandBuffers;
     
@@ -118,8 +114,8 @@ private:
     bool                        m_recreateSwapChainRequested;
 
     //These Uniform buffers will be updated in every DrawFrame
-    std::vector<VkBuffer>       m_uniformBuffers;
-    std::vector<VkDeviceMemory> m_uniformBuffersMemory;
+    //std::vector<VkBuffer>       m_uniformBuffers;
+    //std::vector<VkDeviceMemory> m_uniformBuffersMemory;
 
     //Queues
     QueueFamilyIndices  m_queueFamilyIndices;
@@ -132,4 +128,4 @@ private:
     const uint32_t MAX_FRAMES_IN_FLIGHT = 100;
 };
 
-void TriangleApp::RequestToRecreateSwapChain() { m_recreateSwapChainRequested = true; }
+void MultipleObjectsApp::RequestToRecreateSwapChain() { m_recreateSwapChainRequested = true; }
