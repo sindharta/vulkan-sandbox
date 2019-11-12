@@ -9,7 +9,7 @@
 
 #define SAFE_DESTROY_PIPELINE(device, obj, allocator) { \
     if (VK_NULL_HANDLE != obj) { \
-        vkDestroyPipeline(device, obj, g_allocator); \
+        vkDestroyPipeline(device, obj, allocator); \
         obj = VK_NULL_HANDLE; \
     } \
 }
