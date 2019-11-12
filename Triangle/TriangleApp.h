@@ -10,7 +10,7 @@
 #include "QueueFamilyIndices.h"
 #include "PhysicalDeviceSurfaceInfo.h"
 
-struct GLFWwindow;
+class Window;
 
 class TriangleApp {
 public:
@@ -20,7 +20,6 @@ public:
     inline void RequestToRecreateSwapChain();
 
 private:
-    void InitWindow();
     void InitVulkan();
     void RecreateVulkanSwapChain();
 
@@ -33,7 +32,6 @@ private:
 
 #endif //ENABLE_VULKAN_DEBUG
     
-    void CreateVulkanSurface();
     void PickVulkanPhysicalDevice();
     void CreateVulkanLogicalDevice();
 
@@ -75,11 +73,11 @@ private:
     //Swap chain
     static VkSurfaceFormatKHR PickVulkanSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>* availableFormats);
     static VkPresentModeKHR   PickVulkanSwapPresentMode(const std::vector<VkPresentModeKHR>* availableModes);
-    static VkExtent2D         PickVulkanSwapExtent(GLFWwindow* window, const VkSurfaceCapabilitiesKHR& capabilities);
 
     void CleanUpVulkanSwapChain();
 
-    GLFWwindow* m_window;
+
+    Window*                         m_window;
 
     VkInstance                      m_vulkanInstance;
     VkSurfaceKHR                    m_vulkanSurface;

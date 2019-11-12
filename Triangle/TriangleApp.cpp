@@ -1,5 +1,5 @@
 #include "TriangleApp.h"
-#include <GLFW/glfw3.h>
+#include <GLFW/glfw3.h> //GLFWwindow
 
 #include <glm/gtc/matrix_transform.hpp> //glm::rotate, glm::lookAt, glm::perspective
 #include <stdexcept> //std::runtime_error
@@ -19,6 +19,10 @@
 #include "ColorVertex.h"    
 #include "TextureVertex.h"    
 #include "MVPUniform.h"    
+
+//Shared
+#include "Window.h"
+
 
 VkAllocationCallbacks* g_allocator = nullptr; //Always use default allocator
 
@@ -56,8 +60,8 @@ const std::vector<uint16_t> g_indices = {
 };
 
 //---------------------------------------------------------------------------------------------------------------------
-static void WindowResizedCallback(GLFWwindow* window, int width, int height) {
-    TriangleApp* app = reinterpret_cast<TriangleApp*>(glfwGetWindowUserPointer(window));
+static void WindowResizedCallback(void* userData) {
+    TriangleApp* app = reinterpret_cast<TriangleApp*>(userData);
     app->RequestToRecreateSwapChain();
 }
 
@@ -82,8 +86,10 @@ TriangleApp::TriangleApp()
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void TriangleApp::Run() {
-    InitWindow();
+void TriangleApp::Run() {    
+    m_window = new Window();
+    m_window->Init(WIDTH,HEIGHT, WindowResizedCallback, this);
+
     PrintSupportedExtensions();
     InitVulkan();
 
@@ -96,17 +102,6 @@ void TriangleApp::Run() {
 
     Loop();
     CleanUp();
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
-void TriangleApp::InitWindow() {
-    glfwInit();
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    m_window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan window", nullptr, nullptr);
-    glfwSetWindowUserPointer(m_window, this);
-    glfwSetFramebufferSizeCallback(m_window, WindowResizedCallback);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -135,7 +130,7 @@ void TriangleApp::InitVulkan() {
     InitVulkanInstance(appInfo, extensions);
 #endif
 
-    CreateVulkanSurface();
+    m_window->CreateVulkanSurfaceInto(m_vulkanInstance, g_allocator, &m_vulkanSurface);
     PickVulkanPhysicalDevice();
     CreateVulkanLogicalDevice();
     CreateVulkanDescriptorSetLayout();
@@ -155,12 +150,8 @@ void TriangleApp::InitVulkan() {
 
 void TriangleApp::RecreateVulkanSwapChain() {
 
-    //Handle window minimization
-    int width = 0, height = 0;
-    while (width == 0 || height == 0) {
-        glfwGetFramebufferSize(m_window, &width, &height);
-        glfwWaitEvents();
-    }
+    
+    m_window->WaitInMinimizedState(); //Handle window minimization
 
     vkDeviceWaitIdle(m_vulkanLogicalDevice);
 
@@ -177,14 +168,6 @@ void TriangleApp::RecreateVulkanSwapChain() {
     m_recreateSwapChainRequested = false;
 
     m_vulkanImagesInFlight.resize(m_vulkanSwapChainImages.size(), VK_NULL_HANDLE);
-
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-void TriangleApp::CreateVulkanSurface() {
-    if (glfwCreateWindowSurface(m_vulkanInstance, m_window, g_allocator, &m_vulkanSurface) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create window surface!");
-    }
 
 }
 
@@ -586,7 +569,8 @@ void TriangleApp::CreateVulkanSwapChain() {
 
     VkSurfaceFormatKHR surfaceFormat = PickVulkanSwapSurfaceFormat(&surfaceInfo.Formats);
     VkPresentModeKHR presentMode = PickVulkanSwapPresentMode(&surfaceInfo.PresentModes);
-    m_vulkanSwapChainExtent = PickVulkanSwapExtent(m_window, capabilities);
+
+    m_vulkanSwapChainExtent = m_window->SelectVulkanSwapExtent(capabilities);
     
     uint32_t imageCount = capabilities.minImageCount + 1; //add +1 to prevent waiting for internal ops
     if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount) {
@@ -1048,8 +1032,7 @@ void TriangleApp::InitVulkanInstance(const VkApplicationInfo& appInfo, const std
 //---------------------------------------------------------------------------------------------------------------------
 
 void TriangleApp::Loop() {
-    while (!glfwWindowShouldClose(m_window)) {
-        glfwPollEvents();
+    while (m_window->Loop()) {
         DrawFrame();
     }
 
@@ -1292,29 +1275,6 @@ VkPresentModeKHR TriangleApp::PickVulkanSwapPresentMode(const std::vector<VkPres
 
 //---------------------------------------------------------------------------------------------------------------------
 
-VkExtent2D  TriangleApp::PickVulkanSwapExtent(GLFWwindow* window, const VkSurfaceCapabilitiesKHR& capabilities) {
-
-    if (capabilities.currentExtent.width != UINT32_MAX) {
-        return capabilities.currentExtent;
-    } else {
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
-
-        VkExtent2D actualExtent = {
-            std::max(capabilities.minImageExtent.width, 
-                     std::min(capabilities.maxImageExtent.width, static_cast<uint32_t>(width))
-                    ),
-            std::max(capabilities.minImageExtent.height, 
-                     std::min(capabilities.maxImageExtent.height, static_cast<uint32_t>(height))
-                    )
-        };
-
-        return actualExtent;
-    }
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
 void TriangleApp::CleanUp() {
 
     //Semaphores
@@ -1365,8 +1325,8 @@ void TriangleApp::CleanUp() {
     }
 
     if (nullptr != m_window) {
-        glfwDestroyWindow(m_window);
-        glfwTerminate();
+        m_window->CleanUp();
+        delete m_window;
         m_window = nullptr;
     }
    

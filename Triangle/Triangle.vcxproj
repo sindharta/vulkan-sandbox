@@ -78,21 +78,25 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>..\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <IncludePath>..\Shared\Src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>..\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <IncludePath>..\Shared\Src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>..\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <IncludePath>..\Shared\Src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>..\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <IncludePath>..\Shared\Src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -159,6 +163,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Shared\Src\Window.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="TextureVertex.cpp" />
     <ClCompile Include="TriangleApp.cpp" />
@@ -167,6 +172,7 @@
     <ClCompile Include="VulkanDebugMessenger.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Shared\Src\Window.h" />
     <ClInclude Include="ColorVertex.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="TextureVertex.h" />
