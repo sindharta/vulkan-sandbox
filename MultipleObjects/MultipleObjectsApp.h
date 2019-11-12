@@ -5,10 +5,13 @@
 #include <vector>
 #include <map>
 
+//Shared
 #include "SharedConfig.h"
 #include "VulkanDebugMessenger.h"
-#include "QueueFamilyIndices.h"
 #include "PhysicalDeviceSurfaceInfo.h"
+
+#include "QueueFamilyIndices.h"
+#include "DrawObject.h"
 
 class Window;
 
@@ -52,7 +55,6 @@ private:
     void CreateFrameBuffers();
     void CreateUniformBuffers();
     void CreateDescriptorPool();
-    void CreateDescriptorSets();
     void CreateCommandBuffers();
 
 
@@ -87,7 +89,9 @@ private:
     VkRenderPass                    m_renderPass;
     VkDescriptorSetLayout           m_descriptorSetLayout;
     VkDescriptorPool                m_descriptorPool; //A pool to create descriptor set to bind uniform buffers 
-    std::vector<VkDescriptorSet>    m_descriptorSets; //To bind uniform buffers
+
+    std::vector<DrawObject>         m_drawObjects; // multiple objects
+
     VkPipelineLayout                m_pipelineLayout; //to pass uniform values to shaders
     VkPipeline                      m_graphicsPipeline;
     VkCommandPool                   m_commandPool;
@@ -118,8 +122,8 @@ private:
     bool                        m_recreateSwapChainRequested;
 
     //These Uniform buffers will be updated in every DrawFrame
-    std::vector<VkBuffer>       m_uniformBuffers;
-    std::vector<VkDeviceMemory> m_uniformBuffersMemory;
+    //std::vector<VkBuffer>       m_uniformBuffers;
+    //std::vector<VkDeviceMemory> m_uniformBuffersMemory;
 
     //Queues
     QueueFamilyIndices  m_queueFamilyIndices;

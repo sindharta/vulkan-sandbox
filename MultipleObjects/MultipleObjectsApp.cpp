@@ -5,23 +5,20 @@
 #include <stdexcept> //std::runtime_error
 #include <iostream> //cout
 #include <set> 
-#include <algorithm>  //max
-#include <chrono>
 
 #define STB_IMAGE_IMPLEMENTATION    //This will include the implementation of STB, instead of only the header
 #include "stb_image.h"  //for loading images
 
-
+//Shared
+#include "Window.h"
 #include "Utilities/FileUtility.h"      //ReadFileInto()
 #include "Utilities/GraphicsUtility.h"    //CreateShaderModule()    
 #include "Utilities/Macros.h"
-
 #include "Vertex/ColorVertex.h"    
 #include "Vertex/TextureVertex.h"    
 #include "MVPUniform.h"    
 
-//Shared
-#include "Window.h"
+const uint32_t NUM_DRAW_OBJECTS = 2;
 
 
 VkAllocationCallbacks* g_allocator = nullptr; //Always use default allocator
@@ -72,9 +69,9 @@ MultipleObjectsApp::MultipleObjectsApp()
     , m_physicalDevice(VK_NULL_HANDLE), m_logicalDevice(VK_NULL_HANDLE)
     , m_graphicsQueue(VK_NULL_HANDLE)
     , m_swapChain(VK_NULL_HANDLE), m_renderPass(VK_NULL_HANDLE)
-    , m_descriptorSetLayout(VK_NULL_HANDLE)
     , m_descriptorPool(VK_NULL_HANDLE)
     , m_pipelineLayout(VK_NULL_HANDLE), m_graphicsPipeline(VK_NULL_HANDLE)
+    , m_descriptorSetLayout(VK_NULL_HANDLE)
     , m_commandPool(VK_NULL_HANDLE), m_currentFrame(0), m_recreateSwapChainRequested(false)
     , m_vb(VK_NULL_HANDLE), m_vbMemory(VK_NULL_HANDLE)
     , m_ib(VK_NULL_HANDLE), m_ibMemory(VK_NULL_HANDLE)
@@ -142,6 +139,14 @@ void MultipleObjectsApp::InitVulkan() {
     CreateIndexBuffer();
     CreateSyncObjects();
 
+    //Init draw objects
+    m_drawObjects.resize(NUM_DRAW_OBJECTS);
+    for (uint32_t i=0;i<NUM_DRAW_OBJECTS;++i) {
+        m_drawObjects[i].Init(m_logicalDevice, g_allocator, m_textureImageView, m_textureSampler);
+    }
+    m_drawObjects[0].SetPos(0,0,0.5);
+    m_drawObjects[1].SetPos(0,0,-0.5);
+
     //Swap
     RecreateSwapChain();
 }
@@ -149,7 +154,6 @@ void MultipleObjectsApp::InitVulkan() {
 //---------------------------------------------------------------------------------------------------------------------
 
 void MultipleObjectsApp::RecreateSwapChain() {
-
     
     m_window->WaitInMinimizedState(); //Handle window minimization
 
@@ -161,9 +165,18 @@ void MultipleObjectsApp::RecreateSwapChain() {
     CreateRenderPass();
     CreateGraphicsPipeline();
     CreateFrameBuffers();
-    CreateUniformBuffers();
     CreateDescriptorPool();
-    CreateDescriptorSets();
+
+    //Recreate DrawObjects' swap chain related objects
+    const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
+    m_drawObjects.resize(NUM_DRAW_OBJECTS);
+    for (uint32_t i=0;i<NUM_DRAW_OBJECTS;++i) {
+        m_drawObjects[i].RecreateSwapChainObjects(m_physicalDevice, m_logicalDevice, g_allocator, 
+            m_descriptorPool, numImages, m_descriptorSetLayout);
+        m_drawObjects[i].SetProj(m_swapChainExtent.width / static_cast<float> (m_swapChainExtent.height));
+
+    }
+
     CreateCommandBuffers();
     m_recreateSwapChainRequested = false;
 
@@ -265,6 +278,7 @@ void MultipleObjectsApp::CreateLogicalDevice()  {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
+
 void MultipleObjectsApp::CreateDescriptorSetLayout() {
     //Uniform buffer
     VkDescriptorSetLayoutBinding uboLayoutBinding = {};
@@ -456,27 +470,6 @@ void MultipleObjectsApp::CreateTextureSampler() {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void MultipleObjectsApp::CreateUniformBuffers() {
-
-    const VkDeviceSize bufferSize = sizeof(MVPUniform);
-    const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
-
-    m_uniformBuffers.resize(numImages);
-    m_uniformBuffersMemory.resize(numImages);
-
-    //VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT: to write from the CPU.
-    //VK_MEMORY_PROPERTY_HOST_COHERENT_BIT: ensure that the driver is aware of our copying. Alternative: use flush
-    for (uint32_t i = 0; i < numImages; ++i) {
-        GraphicsUtility::CreateBuffer(m_physicalDevice, m_logicalDevice, g_allocator, bufferSize, 
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-            &m_uniformBuffers[i], &m_uniformBuffersMemory[i]
-        );
-    }
-    
-}
-
-//---------------------------------------------------------------------------------------------------------------------
 void MultipleObjectsApp::CreateCommandBuffers() {
     const uint32_t numFrameBuffers = static_cast<uint32_t>(m_swapChainFramebuffers.size());
     m_commandBuffers.resize(numFrameBuffers);
@@ -518,21 +511,22 @@ void MultipleObjectsApp::CreateCommandBuffers() {
         vkCmdBindPipeline(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
         //Bind vertex and index buffers
-        VkBuffer vertexBuffers[] = {m_vb};
+        VkBuffer vertexBuffers[] = { m_vb };
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(m_commandBuffers[i], 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(m_commandBuffers[i], m_ib, 0, VK_INDEX_TYPE_UINT16);
-        vkCmdBindDescriptorSets(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, 
-            m_pipelineLayout, 0, 1, &m_descriptorSets[i], 0, nullptr
-        );
 
-        vkCmdDrawIndexed(m_commandBuffers[i], static_cast<uint32_t>(g_indices.size()), 1, 0, 0, 0);
+        //Draw multiple objects
+        const uint32_t numObjects = static_cast<uint32_t>(m_drawObjects.size());
+        for (uint32_t j = 0; j < numObjects; ++j) {
+            DrawObject& curDrawObject = m_drawObjects[j];
+            const VkDescriptorSet& curDescriptorSet = curDrawObject.GetDescriptorSet(static_cast<uint32_t>(i));
+            vkCmdBindDescriptorSets(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, 
+                m_pipelineLayout, 0, 1, &curDescriptorSet, 0, nullptr
+            );
 
-        //
-        vkCmdBindDescriptorSets(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, 
-            m_pipelineLayout, 0, 1, &m_descriptorSets[i], 0, nullptr
-        );
-        vkCmdDrawIndexed(m_commandBuffers[i], static_cast<uint32_t>(g_indices.size()), 1, 0, 0, 0);
+            vkCmdDrawIndexed(m_commandBuffers[i], static_cast<uint32_t>(g_indices.size()), 1, 0, 0, 0);
+        }
 
         vkCmdEndRenderPass(m_commandBuffers[i]);
         if (vkEndCommandBuffer(m_commandBuffers[i]) != VK_SUCCESS) {
@@ -700,75 +694,23 @@ void MultipleObjectsApp::CreateRenderPass() {
 void MultipleObjectsApp::CreateDescriptorPool() {
 
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
+    const uint32_t maxDescriptorCount = NUM_DRAW_OBJECTS * numImages;
 
     std::array<VkDescriptorPoolSize, 2> poolSizes = {};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = static_cast<uint32_t>(numImages);
+    poolSizes[0].descriptorCount = maxDescriptorCount;
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = static_cast<uint32_t>(numImages);
+    poolSizes[1].descriptorCount = maxDescriptorCount;
 
     VkDescriptorPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = static_cast<uint32_t>(numImages);
+    poolInfo.maxSets = maxDescriptorCount;
 
     if (vkCreateDescriptorPool(m_logicalDevice, &poolInfo, g_allocator, &m_descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create descriptor pool!");
     }
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
-void MultipleObjectsApp::CreateDescriptorSets() {
-    const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
-
-    std::vector<VkDescriptorSetLayout> layouts(numImages, m_descriptorSetLayout);
-    VkDescriptorSetAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = m_descriptorPool;
-    allocInfo.descriptorSetCount = numImages;
-    allocInfo.pSetLayouts = layouts.data();
-
-    m_descriptorSets.resize(numImages);
-    if (vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate descriptor sets!");
-    }
-
-    for (size_t i = 0; i < numImages; ++i) {
-        VkDescriptorBufferInfo bufferInfo = {};
-        bufferInfo.buffer = m_uniformBuffers[i];
-        bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(MVPUniform);
-
-        VkDescriptorImageInfo imageInfo = {};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_textureImageView;
-        imageInfo.sampler   = m_textureSampler;
-
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
-
-        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = m_descriptorSets[i];
-        descriptorWrites[0].dstBinding = 0;
-        descriptorWrites[0].dstArrayElement = 0;
-        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrites[0].descriptorCount = 1;
-        descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[1].dstSet = m_descriptorSets[i];
-        descriptorWrites[1].dstBinding = 1;
-        descriptorWrites[1].dstArrayElement = 0;
-        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[1].descriptorCount = 1;
-        descriptorWrites[1].pImageInfo = &imageInfo;
-
-        vkUpdateDescriptorSets(m_logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), 
-            descriptorWrites.data(), 0, nullptr
-        );
-    }
-
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -1128,19 +1070,17 @@ void MultipleObjectsApp::DrawFrame() {
 
 //---------------------------------------------------------------------------------------------------------------------
 void MultipleObjectsApp::UpdateVulkanUniformBuffers(uint32_t imageIndex) {
-    static const auto START_TIME = std::chrono::high_resolution_clock::now();
+    //static const auto START_TIME = std::chrono::high_resolution_clock::now();
+    //const auto currentTime = std::chrono::high_resolution_clock::now();
+    //const float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - START_TIME).count();
 
-    const auto currentTime = std::chrono::high_resolution_clock::now();
-    const float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - START_TIME).count();
+    //MVPUniform mvp = {};
+    //mvp.ModelMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    //mvp.ViewMat  = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
-    MVPUniform mvp = {};
-    mvp.ModelMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    mvp.ViewMat  = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    mvp.ProjMat = glm::perspective(glm::radians(45.0f), m_swapChainExtent.width / static_cast<float> (m_swapChainExtent.height), 0.1f, 10.0f);
-    mvp.ProjMat[1][1] *= -1; //flip Y axis
-
-    GraphicsUtility::CopyCPUDataToBuffer(m_logicalDevice, &mvp, 
-        m_uniformBuffersMemory[imageIndex],sizeof(mvp));
+    for (uint32_t i = 0; i < NUM_DRAW_OBJECTS; ++i) {
+        m_drawObjects[i].UpdateUniformBuffers(m_logicalDevice, imageIndex);
+    }
 }
 
 
@@ -1298,8 +1238,11 @@ void MultipleObjectsApp::CleanUp() {
     m_inFlightFences.clear();
 
     CleanUpVulkanSwapChain();
-    
+
     SAFE_DESTROY_DESCRIPTOR_SET_LAYOUT(m_logicalDevice,m_descriptorSetLayout,g_allocator);
+    for (uint32_t i = 0; i < NUM_DRAW_OBJECTS; ++i) {
+        m_drawObjects[i].CleanUp(m_logicalDevice, g_allocator);
+    }
 
     //Textures
     SAFE_DESTROY_SAMPLER(m_logicalDevice,m_textureSampler,g_allocator);
@@ -1348,13 +1291,9 @@ void MultipleObjectsApp::CleanUpVulkanSwapChain() {
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
     vkFreeCommandBuffers(m_logicalDevice, m_commandPool, static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
 
-    //Uniform buffers
-    for (size_t i = 0; i < numImages; i++) {
-        vkDestroyBuffer(m_logicalDevice, m_uniformBuffers[i], g_allocator);
-        vkFreeMemory(m_logicalDevice, m_uniformBuffersMemory[i], g_allocator);
+    for (uint32_t i = 0; i < NUM_DRAW_OBJECTS; ++i) {
+        m_drawObjects[i].CleanUpSwapChainObjects(m_logicalDevice, g_allocator, numImages);
     }
-    m_uniformBuffers.clear();
-    m_uniformBuffersMemory.clear();
 
     SAFE_DESTROY_DESCRIPTOR_POOL(m_logicalDevice, m_descriptorPool, g_allocator);
 
