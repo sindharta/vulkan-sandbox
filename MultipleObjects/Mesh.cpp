@@ -1,10 +1,10 @@
 
-#include "DrawModel.h"
+#include "Mesh.h"
 #include "Utilities/GraphicsUtility.h"
 #include "Utilities/Macros.h"
 
 
-DrawModel::DrawModel() : m_vb(VK_NULL_HANDLE), m_vbMemory(VK_NULL_HANDLE), 
+Mesh::Mesh() : m_vb(VK_NULL_HANDLE), m_vbMemory(VK_NULL_HANDLE), 
                          m_ib(VK_NULL_HANDLE), m_ibMemory(VK_NULL_HANDLE)
 {
 
@@ -12,7 +12,7 @@ DrawModel::DrawModel() : m_vb(VK_NULL_HANDLE), m_vbMemory(VK_NULL_HANDLE),
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void DrawModel::Init(const VkPhysicalDevice physicalDevice, const VkDevice device, 
+void Mesh::Init(const VkPhysicalDevice physicalDevice, const VkDevice device, 
     VkAllocationCallbacks* allocator,  const VkCommandPool commandPool, VkQueue queue, 
     const char* vertexData, const uint32_t vertexDataSize, const char* indexData, const uint32_t indicesDataSize) 
 {
@@ -22,7 +22,7 @@ void DrawModel::Init(const VkPhysicalDevice physicalDevice, const VkDevice devic
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void DrawModel::CleanUp(const VkDevice device, VkAllocationCallbacks* allocator)
+void Mesh::CleanUp(const VkDevice device, VkAllocationCallbacks* allocator)
 {
     //Vertex and Index Buffers
     SAFE_DESTROY_BUFFER(device, m_vb, allocator);
@@ -33,7 +33,7 @@ void DrawModel::CleanUp(const VkDevice device, VkAllocationCallbacks* allocator)
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void DrawModel::CreateVertexBuffer(const VkPhysicalDevice physicalDevice, const VkDevice device, 
+void Mesh::CreateVertexBuffer(const VkPhysicalDevice physicalDevice, const VkDevice device, 
         VkAllocationCallbacks* allocator,  const VkCommandPool commandPool, VkQueue queue, 
         const char* vertexData, const uint32_t vertexDataSize) 
 {
@@ -70,7 +70,7 @@ void DrawModel::CreateVertexBuffer(const VkPhysicalDevice physicalDevice, const 
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void DrawModel::CreateIndexBuffer(const VkPhysicalDevice physicalDevice, const VkDevice device, 
+void Mesh::CreateIndexBuffer(const VkPhysicalDevice physicalDevice, const VkDevice device, 
         VkAllocationCallbacks* allocator,  const VkCommandPool commandPool, VkQueue queue, 
         const char* indicesData, const uint32_t indicesDataSize) 
 {

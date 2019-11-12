@@ -15,7 +15,7 @@
 
 class Window;
 class Texture;
-class DrawModel;
+class Mesh;
 
 class MultipleObjectsApp {
 public:
@@ -94,8 +94,8 @@ private:
     VkPipeline                      m_graphicsPipeline;
     VkCommandPool                   m_commandPool;
 
-    DrawModel*            m_drawModel;
-    Texture*              m_texture;
+    Mesh*                       m_mesh;
+    Texture*                    m_texture;
 
     std::vector<VkCommandBuffer> m_commandBuffers;
     

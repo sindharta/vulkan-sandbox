@@ -2,10 +2,10 @@
 
 #include <vulkan/vulkan.h> 
 
-class DrawModel {
+class Mesh {
 
 public:
-    DrawModel();
+    Mesh();
     void Init(const VkPhysicalDevice physicalDevice, const VkDevice device, 
         VkAllocationCallbacks* allocator,  const VkCommandPool commandPool, VkQueue queue, 
         const char* vertexData, const uint32_t vertexDataSize, const char* indexData, const uint32_t indicesDataSize);
@@ -32,5 +32,5 @@ private:
 
 //---------------------------------------------------------------------------------------------------------------------
 
-VkBuffer DrawModel::GetVertexBuffer() const { return m_vb; }
-VkBuffer DrawModel::GetIndexBuffer() const { return m_ib; }
+VkBuffer Mesh::GetVertexBuffer() const { return m_vb; }
+VkBuffer Mesh::GetIndexBuffer() const { return m_ib; }

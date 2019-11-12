@@ -53,7 +53,7 @@
     <ClCompile Include="Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DrawModel.cpp">
+    <ClCompile Include="Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -100,7 +100,10 @@
     <ClInclude Include="Texture.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="DrawModel.h">
+    <ClInclude Include="DrawPipeline.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -111,7 +114,11 @@
     <CustomBuild Include="..\Shared\Shaders\Texture.vert">
       <Filter>Shared\Shaders</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\Shared\Shaders\Triangle.frag" />
-    <CustomBuild Include="..\Shared\Shaders\Triangle.vert" />
+    <CustomBuild Include="..\Shared\Shaders\Triangle.vert">
+      <Filter>Shared\Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\Shared\Shaders\Triangle.frag">
+      <Filter>Shared\Shaders</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

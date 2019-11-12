@@ -16,7 +16,7 @@
 #include "Vertex/TextureVertex.h"    
 #include "MVPUniform.h"    
 
-#include "DrawModel.h"
+#include "Mesh.h"
 #include "Texture.h"
 
 const uint32_t NUM_DRAW_OBJECTS = 2;
@@ -138,8 +138,8 @@ void MultipleObjectsApp::InitVulkan() {
     );
 
     //Model
-    m_drawModel = new DrawModel();
-    m_drawModel->Init(m_physicalDevice, m_logicalDevice, g_allocator, m_commandPool,m_graphicsQueue, 
+    m_mesh = new Mesh();
+    m_mesh->Init(m_physicalDevice, m_logicalDevice, g_allocator, m_commandPool,m_graphicsQueue, 
         reinterpret_cast<const char*>(g_texVertices.data()), static_cast<uint32_t>(sizeof(g_texVertices[0]) * g_texVertices.size()),
         reinterpret_cast<const char*>(g_indices.data()), static_cast<uint32_t>(sizeof(g_indices[0]) * g_indices.size())
     );
@@ -372,10 +372,10 @@ void MultipleObjectsApp::CreateCommandBuffers() {
         vkCmdBindPipeline(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
         //Bind vertex and index buffers
-        VkBuffer vertexBuffers[] = { m_drawModel->GetVertexBuffer() };
+        VkBuffer vertexBuffers[] = { m_mesh->GetVertexBuffer() };
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(m_commandBuffers[i], 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(m_commandBuffers[i], m_drawModel->GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(m_commandBuffers[i], m_mesh->GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT16);
 
         //Draw multiple objects
         const uint32_t numObjects = static_cast<uint32_t>(m_drawObjects.size());
@@ -1113,10 +1113,10 @@ void MultipleObjectsApp::CleanUp() {
     }
 
     //Model
-    if (nullptr != m_drawModel) {
-        m_drawModel->CleanUp(m_logicalDevice, g_allocator);
-        delete(m_drawModel);
-        m_drawModel = nullptr;
+    if (nullptr != m_mesh) {
+        m_mesh->CleanUp(m_logicalDevice, g_allocator);
+        delete(m_mesh);
+        m_mesh = nullptr;
     }
 
     SAFE_DESTROY_COMMAND_POOL(m_logicalDevice, m_commandPool, g_allocator);
