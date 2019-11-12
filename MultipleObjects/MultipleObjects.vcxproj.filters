@@ -85,6 +85,9 @@
     <ClInclude Include="MultipleObjectsApp.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Header.h">
+      <Filter>Shared\Src</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\Shared\Shaders\Texture.frag">
@@ -93,13 +96,7 @@
     <CustomBuild Include="..\Shared\Shaders\Texture.vert">
       <Filter>Shared\Shaders</Filter>
     </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\Shared\Shaders\Triangle.frag">
-      <Filter>Shared\Shaders</Filter>
-    </None>
-    <None Include="..\Shared\Shaders\Triangle.vert">
-      <Filter>Shared\Shaders</Filter>
-    </None>
+    <CustomBuild Include="..\Shared\Shaders\Triangle.frag" />
+    <CustomBuild Include="..\Shared\Shaders\Triangle.vert" />
   </ItemGroup>
 </Project>

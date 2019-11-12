@@ -182,6 +182,7 @@
     <ClInclude Include="..\Shared\Src\Vertex\TextureVertex.h" />
     <ClInclude Include="..\Shared\Src\VulkanDebugMessenger.h" />
     <ClInclude Include="..\Shared\Src\Window.h" />
+    <ClInclude Include="Header.h" />
     <ClInclude Include="QueueFamilyIndices.h" />
     <ClInclude Include="MultipleObjectsApp.h" />
   </ItemGroup>

@@ -26,7 +26,7 @@ private:
 #ifdef ENABLE_VULKAN_DEBUG
     void InitVulkanDebugInstance(const VkApplicationInfo& appInfo, const std::vector<const char*>& extensions);
     bool CheckRequiredVulkanLayersAvailability(const std::vector<const char*> requiredLayers);
-    VulkanDebugMessenger m_vulkanDebug;
+    VulkanDebugMessenger m_Debug;
 #else
     void InitVulkanInstance(const VkApplicationInfo& appInfo, const std::vector<const char*>& extensions);
 
@@ -79,52 +79,52 @@ private:
 
     Window*                         m_window;
 
-    VkInstance                      m_vulkanInstance;
-    VkSurfaceKHR                    m_vulkanSurface;
-    VkPhysicalDevice                m_vulkanPhysicalDevice;
-    VkDevice                        m_vulkanLogicalDevice;
-    VkSwapchainKHR                  m_vulkanSwapChain;
-    VkRenderPass                    m_vulkanRenderPass;
-    VkDescriptorSetLayout           m_vulkanDescriptorSetLayout;
-    VkDescriptorPool                m_vulkanDescriptorPool; //A pool to create descriptor set to bind uniform buffers 
-    std::vector<VkDescriptorSet>    m_vulkanDescriptorSets; //To bind uniform buffers
-    VkPipelineLayout                m_vulkanPipelineLayout; //to pass uniform values to shaders
-    VkPipeline                      m_vulkanGraphicsPipeline;
-    VkCommandPool                   m_vulkanCommandPool;
+    VkInstance                      m_instance;
+    VkSurfaceKHR                    m_surface;
+    VkPhysicalDevice                m_physicalDevice;
+    VkDevice                        m_logicalDevice;
+    VkSwapchainKHR                  m_swapChain;
+    VkRenderPass                    m_renderPass;
+    VkDescriptorSetLayout           m_descriptorSetLayout;
+    VkDescriptorPool                m_descriptorPool; //A pool to create descriptor set to bind uniform buffers 
+    std::vector<VkDescriptorSet>    m_descriptorSets; //To bind uniform buffers
+    VkPipelineLayout                m_pipelineLayout; //to pass uniform values to shaders
+    VkPipeline                      m_graphicsPipeline;
+    VkCommandPool                   m_commandPool;
 
-    VkBuffer            m_vulkanVB;
-    VkDeviceMemory      m_vulkanVBMemory;
-    VkBuffer            m_vulkanIB;
-    VkDeviceMemory      m_vulkanIBMemory;
-    VkImage             m_vulkanTextureImage;
-    VkDeviceMemory      m_vulkanTextureImageMemory;
-    VkImageView         m_vulkanTextureImageView;
-    VkSampler           m_vulkanTextureSampler;
+    VkBuffer            m_vb;
+    VkDeviceMemory      m_vbMemory;
+    VkBuffer            m_ib;
+    VkDeviceMemory      m_ibMemory;
+    VkImage             m_textureImage;
+    VkDeviceMemory      m_textureImageMemory;
+    VkImageView         m_textureImageView;
+    VkSampler           m_textureSampler;
 
-    std::vector<VkCommandBuffer> m_vulkanCommandBuffers;
+    std::vector<VkCommandBuffer> m_commandBuffers;
     
-    std::vector<VkSemaphore> m_vulkanImageAvailableSemaphores;
-    std::vector<VkSemaphore> m_vulkanRenderFinishedSemaphores;
+    std::vector<VkSemaphore> m_imageAvailableSemaphores;
+    std::vector<VkSemaphore> m_renderFinishedSemaphores;
 
     //Swap chain
-    std::vector<VkImage>        m_vulkanSwapChainImages;
-    std::vector<VkImageView>    m_vulkanSwapChainImageViews;
-    VkFormat                    m_vulkanSwapChainSurfaceFormat;
-    VkExtent2D                  m_vulkanSwapChainExtent;
-    std::vector<VkFramebuffer>  m_vulkanSwapChainFramebuffers;
-    uint32_t                    m_vulkanCurrentFrame;
-    std::vector<VkFence>        m_vulkanInFlightFences; //CPU-GPU synchronizations
-    std::vector<VkFence>        m_vulkanImagesInFlight; //To test if the current frame is still in flight
+    std::vector<VkImage>        m_swapChainImages;
+    std::vector<VkImageView>    m_swapChainImageViews;
+    VkFormat                    m_swapChainSurfaceFormat;
+    VkExtent2D                  m_swapChainExtent;
+    std::vector<VkFramebuffer>  m_swapChainFramebuffers;
+    uint32_t                    m_currentFrame;
+    std::vector<VkFence>        m_inFlightFences; //CPU-GPU synchronizations
+    std::vector<VkFence>        m_imagesInFlight; //To test if the current frame is still in flight
     bool                        m_recreateSwapChainRequested;
 
     //These Uniform buffers will be updated in every DrawFrame
-    std::vector<VkBuffer>       m_vulkanUniformBuffers;
-    std::vector<VkDeviceMemory> m_vulkanUniformBuffersMemory;
+    std::vector<VkBuffer>       m_uniformBuffers;
+    std::vector<VkDeviceMemory> m_uniformBuffersMemory;
 
     //Queues
-    QueueFamilyIndices  m_vulkanQueueFamilyIndices;
-    VkQueue             m_vulkanGraphicsQueue;
-    VkQueue             m_vulkanPresentationQueue;
+    QueueFamilyIndices  m_queueFamilyIndices;
+    VkQueue             m_graphicsQueue;
+    VkQueue             m_presentationQueue;
 
     static const uint32_t WIDTH = 800;
     static const uint32_t HEIGHT = 600;
