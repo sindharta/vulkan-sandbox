@@ -9,11 +9,20 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Shaders">
+    <Filter Include="Shared">
+      <UniqueIdentifier>{ea800a66-a5f8-4fb3-a0b2-7b32a5884543}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Src">
+      <UniqueIdentifier>{ffda2a85-1068-477a-897a-3922e0c395d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Src\Utilities">
+      <UniqueIdentifier>{cb8dc7e7-76d9-40d0-a2f9-7edf9192a3ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Shaders">
       <UniqueIdentifier>{20b15b5c-e553-42cd-be6c-c506894c1e49}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Utilities">
-      <UniqueIdentifier>{cb8dc7e7-76d9-40d0-a2f9-7edf9192a3ba}</UniqueIdentifier>
+    <Filter Include="Shared\Src\Vertex">
+      <UniqueIdentifier>{97e7a83a-aee2-457a-9389-76a32680a7cd}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -23,63 +32,72 @@
     <ClCompile Include="TriangleApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VulkanDebugMessenger.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\Shared\Src\Window.cpp">
+      <Filter>Shared\Src</Filter>
     </ClCompile>
-    <ClCompile Include="Utilities\FileUtility.cpp">
-      <Filter>Utilities</Filter>
+    <ClCompile Include="..\Shared\Src\Utilities\FileUtility.cpp">
+      <Filter>Shared\Src\Utilities</Filter>
     </ClCompile>
-    <ClCompile Include="Utilities\GraphicsUtility.cpp">
-      <Filter>Utilities</Filter>
+    <ClCompile Include="..\Shared\Src\Utilities\GraphicsUtility.cpp">
+      <Filter>Shared\Src\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Src\Vertex\TextureVertex.cpp">
+      <Filter>Shared\Src\Vertex</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Src\VulkanDebugMessenger.cpp">
+      <Filter>Shared\Src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TriangleApp.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Config.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="VulkanDebugMessenger.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="QueueFamilyIndices.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="PhysicalDeviceSurfaceInfo.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="..\Shared\Src\Window.h">
+      <Filter>Shared\Src</Filter>
     </ClInclude>
-    <ClInclude Include="Utilities\FileUtility.h">
-      <Filter>Utilities</Filter>
+    <ClInclude Include="..\Shared\Src\Utilities\FileUtility.h">
+      <Filter>Shared\Src\Utilities</Filter>
     </ClInclude>
-    <ClInclude Include="ColorVertex.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="..\Shared\Src\Utilities\GraphicsUtility.h">
+      <Filter>Shared\Src\Utilities</Filter>
     </ClInclude>
-    <ClInclude Include="Utilities\GraphicsUtility.h">
-      <Filter>Utilities</Filter>
+    <ClInclude Include="..\Shared\Src\Utilities\Macros.h">
+      <Filter>Shared\Src\Utilities</Filter>
     </ClInclude>
-    <ClInclude Include="MVPUniform.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="..\Shared\Src\Vertex\ColorVertex.h">
+      <Filter>Shared\Src\Vertex</Filter>
     </ClInclude>
-    <ClInclude Include="TextureVertex.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="..\Shared\Src\Vertex\TextureVertex.h">
+      <Filter>Shared\Src\Vertex</Filter>
     </ClInclude>
-    <ClInclude Include="Macros.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="..\Shared\Src\MVPUniform.h">
+      <Filter>Shared\Src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Src\PhysicalDeviceSurfaceInfo.h">
+      <Filter>Shared\Src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Src\VulkanDebugMessenger.h">
+      <Filter>Shared\Src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Src\SharedConfig.h">
+      <Filter>Shared\Src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\Triangle.frag">
-      <Filter>Shaders</Filter>
+    <None Include="..\Shared\Shaders\Texture.frag">
+      <Filter>Shared\Shaders</Filter>
     </None>
-    <None Include="Shaders\Triangle.vert">
-      <Filter>Shaders</Filter>
+    <None Include="..\Shared\Shaders\Texture.vert">
+      <Filter>Shared\Shaders</Filter>
     </None>
-    <None Include="Shaders\Texture.frag">
-      <Filter>Shaders</Filter>
+    <None Include="..\Shared\Shaders\Triangle.frag">
+      <Filter>Shared\Shaders</Filter>
     </None>
-    <None Include="Shaders\Texture.vert">
-      <Filter>Shaders</Filter>
+    <None Include="..\Shared\Shaders\Triangle.vert">
+      <Filter>Shared\Shaders</Filter>
     </None>
   </ItemGroup>
 </Project>

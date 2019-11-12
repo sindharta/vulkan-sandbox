@@ -78,21 +78,25 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>..\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <IncludePath>..\Shared\Src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>..\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <IncludePath>..\Shared\Src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>..\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <IncludePath>..\Shared\Src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>..\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <IncludePath>..\Shared\Src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -159,85 +163,88 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Shared\Src\Utilities\FileUtility.cpp" />
+    <ClCompile Include="..\Shared\Src\Utilities\GraphicsUtility.cpp" />
+    <ClCompile Include="..\Shared\Src\Vertex\TextureVertex.cpp" />
+    <ClCompile Include="..\Shared\Src\VulkanDebugMessenger.cpp" />
+    <ClCompile Include="..\Shared\Src\Window.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="TriangleApp.cpp" />
-    <ClCompile Include="Utilities\FileUtility.cpp" />
-    <ClCompile Include="Utilities\GraphicsUtility.cpp" />
-    <ClCompile Include="VulkanDebugMessenger.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ColorVertex.h" />
-    <ClInclude Include="Config.h" />
-    <ClInclude Include="Macros.h" />
-    <ClInclude Include="TextureVertex.h" />
-    <ClInclude Include="MVPUniform.h" />
-    <ClInclude Include="PhysicalDeviceSurfaceInfo.h" />
+    <ClInclude Include="..\Shared\Src\MVPUniform.h" />
+    <ClInclude Include="..\Shared\Src\PhysicalDeviceSurfaceInfo.h" />
+    <ClInclude Include="..\Shared\Src\SharedConfig.h" />
+    <ClInclude Include="..\Shared\Src\Utilities\FileUtility.h" />
+    <ClInclude Include="..\Shared\Src\Utilities\GraphicsUtility.h" />
+    <ClInclude Include="..\Shared\Src\Utilities\Macros.h" />
+    <ClInclude Include="..\Shared\Src\Vertex\ColorVertex.h" />
+    <ClInclude Include="..\Shared\Src\Vertex\TextureVertex.h" />
+    <ClInclude Include="..\Shared\Src\VulkanDebugMessenger.h" />
+    <ClInclude Include="..\Shared\Src\Window.h" />
     <ClInclude Include="QueueFamilyIndices.h" />
     <ClInclude Include="TriangleApp.h" />
-    <ClInclude Include="Utilities\FileUtility.h" />
-    <ClInclude Include="Utilities\GraphicsUtility.h" />
-    <ClInclude Include="VulkanDebugMessenger.h" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="Shaders\Texture.frag">
+    <CustomBuild Include="..\Shared\Shaders\Texture.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(FullPath).spv</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(FullPath).spv</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(FullPath).spv</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(FullPath).spv</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Executing glslangvalidator</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Executing glslangvalidator</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Executing glslangvalidator</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Executing glslangvalidator</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(FullPath).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(FullPath).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(FullPath).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(FullPath).spv</Outputs>
     </CustomBuild>
-    <CustomBuild Include="Shaders\Texture.vert">
+    <CustomBuild Include="..\Shared\Shaders\Texture.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(FullPath).spv</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(FullPath).spv</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(FullPath).spv</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(FullPath).spv</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Executing glslangvalidator</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Executing glslangvalidator</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Executing glslangvalidator</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Executing glslangvalidator</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(FullPath).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(FullPath).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(FullPath).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(FullPath).spv</Outputs>
     </CustomBuild>
-    <CustomBuild Include="Shaders\Triangle.frag">
+    <CustomBuild Include="..\Shared\Shaders\Triangle.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(FullPath).spv</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(FullPath).spv</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(FullPath).spv</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(FullPath).spv</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Executing glslangvalidator</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Executing glslangvalidator</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Executing glslangvalidator</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Executing glslangvalidator</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(FullPath).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(FullPath).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(FullPath).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(FullPath).spv</Outputs>
     </CustomBuild>
-    <CustomBuild Include="Shaders\Triangle.vert">
+    <CustomBuild Include="..\Shared\Shaders\Triangle.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(FullPath).spv</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(FullPath).spv</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(FullPath).spv</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(FullPath).spv</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Executing glslangvalidator</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Executing glslangvalidator</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Executing glslangvalidator</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Executing glslangvalidator</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(FullPath).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(FullPath).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(FullPath).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(FullPath).spv</Outputs>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
