@@ -28,8 +28,6 @@ public:
 
     void UpdateUniformBuffers(const VkDevice device, const uint32_t imageIndex);
 
-    //inline VkBuffer GetVertexBuffer() const;
-    //inline VkBuffer GetIndexBuffer() const;
     //inline uint32_t GetIndicesSize() const;
     //inline VkDescriptorSetLayout GetDescriptorSetLayout() const;         
     inline const VkDescriptorSet GetDescriptorSet(const uint32_t idx) const;
@@ -62,6 +60,4 @@ void DrawObject::SetPos(const float x, const float y, const float z) { m_pos = g
 void DrawObject::SetPos(const glm::vec3& pos) { m_pos = pos; }
 const VkDescriptorSet DrawObject::GetDescriptorSet(const uint32_t idx) const { return m_descriptorSets[idx]; }
 
-//VkBuffer DrawObject::GetVertexBuffer() const { return m_vb; }
-//VkBuffer DrawObject::GetIndexBuffer() const { return m_ib; }
 //VkDescriptorSetLayout DrawObject::GetDescriptorSetLayout() const { return m_descriptorSetLayout; }

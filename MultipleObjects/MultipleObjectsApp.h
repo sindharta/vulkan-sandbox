@@ -15,6 +15,7 @@
 
 class Window;
 class Texture;
+class DrawModel;
 
 class MultipleObjectsApp {
 public:
@@ -41,8 +42,8 @@ private:
 
     void CreateDescriptorSetLayout();
     void CreateCommandPool();
-    void CreateVertexBuffer();
-    void CreateIndexBuffer();
+    //void CreateVertexBuffer();
+    //void CreateIndexBuffer();
     void CreateSyncObjects();
     
     //Swap chain related
@@ -93,12 +94,8 @@ private:
     VkPipeline                      m_graphicsPipeline;
     VkCommandPool                   m_commandPool;
 
-    VkBuffer            m_vb;
-    VkDeviceMemory      m_vbMemory;
-    VkBuffer            m_ib;
-    VkDeviceMemory      m_ibMemory;
-
-    Texture*            m_texture;
+    DrawModel*            m_drawModel;
+    Texture*              m_texture;
 
     std::vector<VkCommandBuffer> m_commandBuffers;
     

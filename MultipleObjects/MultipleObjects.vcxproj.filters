@@ -53,6 +53,9 @@
     <ClCompile Include="Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DrawModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="QueueFamilyIndices.h">
@@ -95,6 +98,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Texture.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DrawModel.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

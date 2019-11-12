@@ -168,6 +168,7 @@
     <ClCompile Include="..\Shared\Src\Vertex\TextureVertex.cpp" />
     <ClCompile Include="..\Shared\Src\VulkanDebugMessenger.cpp" />
     <ClCompile Include="..\Shared\Src\Window.cpp" />
+    <ClCompile Include="DrawModel.cpp" />
     <ClCompile Include="DrawObject.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MultipleObjectsApp.cpp" />
@@ -184,6 +185,7 @@
     <ClInclude Include="..\Shared\Src\Vertex\TextureVertex.h" />
     <ClInclude Include="..\Shared\Src\VulkanDebugMessenger.h" />
     <ClInclude Include="..\Shared\Src\Window.h" />
+    <ClInclude Include="DrawModel.h" />
     <ClInclude Include="DrawObject.h" />
     <ClInclude Include="QueueFamilyIndices.h" />
     <ClInclude Include="MultipleObjectsApp.h" />

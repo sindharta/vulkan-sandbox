@@ -16,6 +16,7 @@
 #include "Vertex/TextureVertex.h"    
 #include "MVPUniform.h"    
 
+#include "DrawModel.h"
 #include "Texture.h"
 
 const uint32_t NUM_DRAW_OBJECTS = 2;
@@ -73,8 +74,6 @@ MultipleObjectsApp::MultipleObjectsApp()
     , m_pipelineLayout(VK_NULL_HANDLE), m_graphicsPipeline(VK_NULL_HANDLE)
     , m_descriptorSetLayout(VK_NULL_HANDLE)
     , m_commandPool(VK_NULL_HANDLE), m_currentFrame(0), m_recreateSwapChainRequested(false)
-    , m_vb(VK_NULL_HANDLE), m_vbMemory(VK_NULL_HANDLE)
-    , m_ib(VK_NULL_HANDLE), m_ibMemory(VK_NULL_HANDLE)
     , m_texture(nullptr)
     , m_window(nullptr) 
 {
@@ -138,8 +137,14 @@ void MultipleObjectsApp::InitVulkan() {
         "../Resources/Textures/statue.jpg"
     );
 
-    CreateVertexBuffer();
-    CreateIndexBuffer();
+    //Model
+    m_drawModel = new DrawModel();
+    m_drawModel->Init(m_physicalDevice, m_logicalDevice, g_allocator, m_commandPool,m_graphicsQueue, 
+        reinterpret_cast<const char*>(g_texVertices.data()), static_cast<uint32_t>(sizeof(g_texVertices[0]) * g_texVertices.size()),
+        reinterpret_cast<const char*>(g_indices.data()), static_cast<uint32_t>(sizeof(g_indices[0]) * g_indices.size())
+    );
+
+
     CreateSyncObjects();
 
     //Init draw objects
@@ -324,68 +329,6 @@ void MultipleObjectsApp::CreateCommandPool() {
     }
 }
 
-//---------------------------------------------------------------------------------------------------------------------
-void MultipleObjectsApp::CreateVertexBuffer() {
-
-    const VkDeviceSize bufferSize = sizeof(g_texVertices[0]) * g_texVertices.size();
-
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-
-    //VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT: to write from the CPU.
-    //VK_MEMORY_PROPERTY_HOST_COHERENT_BIT: ensure that the driver is aware of our copying. Alternative: use flush
-    GraphicsUtility::CreateBuffer(m_physicalDevice, m_logicalDevice, g_allocator, bufferSize, 
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-        &stagingBuffer, &stagingBufferMemory);
-
-    //Filling Vertex Buffer
-    GraphicsUtility::CopyCPUDataToBuffer(m_logicalDevice,g_texVertices.data(),stagingBufferMemory,bufferSize);
-
-    //VK_BUFFER_USAGE_TRANSFER_DST_BIT: destination in a memory transfer
-    GraphicsUtility::CreateBuffer(m_physicalDevice, m_logicalDevice, g_allocator, bufferSize, 
-                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
-                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-                 &m_vb, &m_vbMemory);
-
-    //Copy buffer
-    GraphicsUtility::CopyBuffer(m_logicalDevice, m_commandPool, m_graphicsQueue,
-        stagingBuffer, m_vb,bufferSize
-    );
-
-    vkDestroyBuffer(m_logicalDevice, stagingBuffer, g_allocator);
-    vkFreeMemory(m_logicalDevice, stagingBufferMemory, g_allocator);
-
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
-void MultipleObjectsApp::CreateIndexBuffer() {
-    const VkDeviceSize bufferSize = sizeof(g_indices[0]) * g_indices.size();
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    GraphicsUtility::CreateBuffer(m_physicalDevice, m_logicalDevice, g_allocator, bufferSize, 
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-        &stagingBuffer, &stagingBufferMemory
-    );
-
-    GraphicsUtility::CopyCPUDataToBuffer(m_logicalDevice,g_indices.data(),stagingBufferMemory,bufferSize);
-
-    GraphicsUtility::CreateBuffer(m_physicalDevice, m_logicalDevice,g_allocator, bufferSize, 
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_ib, &m_ibMemory);
-
-    //Copy buffer
-    GraphicsUtility::CopyBuffer(m_logicalDevice, m_commandPool, m_graphicsQueue,
-        stagingBuffer, m_ib,bufferSize
-    );
-
-    vkDestroyBuffer(m_logicalDevice, stagingBuffer, g_allocator);
-    vkFreeMemory(m_logicalDevice, stagingBufferMemory, g_allocator);
-}
 
 //---------------------------------------------------------------------------------------------------------------------
 void MultipleObjectsApp::CreateCommandBuffers() {
@@ -429,10 +372,10 @@ void MultipleObjectsApp::CreateCommandBuffers() {
         vkCmdBindPipeline(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
         //Bind vertex and index buffers
-        VkBuffer vertexBuffers[] = { m_vb };
+        VkBuffer vertexBuffers[] = { m_drawModel->GetVertexBuffer() };
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(m_commandBuffers[i], 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(m_commandBuffers[i], m_ib, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(m_commandBuffers[i], m_drawModel->GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT16);
 
         //Draw multiple objects
         const uint32_t numObjects = static_cast<uint32_t>(m_drawObjects.size());
@@ -1165,14 +1108,16 @@ void MultipleObjectsApp::CleanUp() {
     //Textures
     if (nullptr != m_texture) {
         m_texture->CleanUp(m_logicalDevice, g_allocator);
+        delete(m_texture);
         m_texture = nullptr;
     }
 
-    //Vertex and Index Buffers
-    SAFE_DESTROY_BUFFER(m_logicalDevice, m_vb, g_allocator);
-    SAFE_FREE_MEMORY(m_logicalDevice, m_vbMemory, g_allocator);
-    SAFE_DESTROY_BUFFER(m_logicalDevice, m_ib, g_allocator);
-    SAFE_FREE_MEMORY(m_logicalDevice, m_ibMemory, g_allocator);
+    //Model
+    if (nullptr != m_drawModel) {
+        m_drawModel->CleanUp(m_logicalDevice, g_allocator);
+        delete(m_drawModel);
+        m_drawModel = nullptr;
+    }
 
     SAFE_DESTROY_COMMAND_POOL(m_logicalDevice, m_commandPool, g_allocator);
 
