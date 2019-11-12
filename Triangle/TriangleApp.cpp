@@ -16,8 +16,8 @@
 #include "Utilities/GraphicsUtility.h"    //CreateShaderModule()    
 #include "Utilities/Macros.h"
 
-#include "ColorVertex.h"    
-#include "TextureVertex.h"    
+#include "Vertex/ColorVertex.h"    
+#include "Vertex/TextureVertex.h"    
 #include "MVPUniform.h"    
 
 //Shared

@@ -5,7 +5,7 @@
 #include <vector>
 #include <map>
 
-#include "Config.h"
+#include "SharedConfig.h"
 #include "VulkanDebugMessenger.h"
 #include "QueueFamilyIndices.h"
 #include "PhysicalDeviceSurfaceInfo.h"

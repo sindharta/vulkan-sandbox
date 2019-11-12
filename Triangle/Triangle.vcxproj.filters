@@ -21,18 +21,15 @@
     <Filter Include="Shared\Shaders">
       <UniqueIdentifier>{20b15b5c-e553-42cd-be6c-c506894c1e49}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shared\Src\Vertex">
+      <UniqueIdentifier>{97e7a83a-aee2-457a-9389-76a32680a7cd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TriangleApp.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="VulkanDebugMessenger.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TextureVertex.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\Shared\Src\Window.cpp">
@@ -44,30 +41,18 @@
     <ClCompile Include="..\Shared\Src\Utilities\GraphicsUtility.cpp">
       <Filter>Shared\Src\Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="..\Shared\Src\Vertex\TextureVertex.cpp">
+      <Filter>Shared\Src\Vertex</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Src\VulkanDebugMessenger.cpp">
+      <Filter>Shared\Src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TriangleApp.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Config.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="VulkanDebugMessenger.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="QueueFamilyIndices.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="PhysicalDeviceSurfaceInfo.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ColorVertex.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MVPUniform.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TextureVertex.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\Src\Window.h">
@@ -81,6 +66,24 @@
     </ClInclude>
     <ClInclude Include="..\Shared\Src\Utilities\Macros.h">
       <Filter>Shared\Src\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Src\Vertex\ColorVertex.h">
+      <Filter>Shared\Src\Vertex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Src\Vertex\TextureVertex.h">
+      <Filter>Shared\Src\Vertex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Src\MVPUniform.h">
+      <Filter>Shared\Src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Src\PhysicalDeviceSurfaceInfo.h">
+      <Filter>Shared\Src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Src\VulkanDebugMessenger.h">
+      <Filter>Shared\Src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Src\SharedConfig.h">
+      <Filter>Shared\Src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

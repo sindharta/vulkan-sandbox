@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Config.h"
+#include "SharedConfig.h"
 #include <vulkan/vulkan.h> 
 
 #ifdef ENABLE_VULKAN_DEBUG
