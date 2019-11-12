@@ -14,6 +14,7 @@
 #include "DrawObject.h"
 
 class Window;
+class Texture;
 
 class MultipleObjectsApp {
 public:
@@ -42,9 +43,6 @@ private:
     void CreateCommandPool();
     void CreateVertexBuffer();
     void CreateIndexBuffer();
-    void CreateTextureImage();
-    void CreateTextureImageView();
-    void CreateTextureSampler();
     void CreateSyncObjects();
     
     //Swap chain related
@@ -53,7 +51,6 @@ private:
     void CreateRenderPass();
     void CreateGraphicsPipeline();
     void CreateFrameBuffers();
-    void CreateUniformBuffers();
     void CreateDescriptorPool();
     void CreateCommandBuffers();
 
@@ -100,10 +97,8 @@ private:
     VkDeviceMemory      m_vbMemory;
     VkBuffer            m_ib;
     VkDeviceMemory      m_ibMemory;
-    VkImage             m_textureImage;
-    VkDeviceMemory      m_textureImageMemory;
-    VkImageView         m_textureImageView;
-    VkSampler           m_textureSampler;
+
+    Texture*            m_texture;
 
     std::vector<VkCommandBuffer> m_commandBuffers;
     

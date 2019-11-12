@@ -6,8 +6,6 @@
 #include <iostream> //cout
 #include <set> 
 
-#define STB_IMAGE_IMPLEMENTATION    //This will include the implementation of STB, instead of only the header
-#include "stb_image.h"  //for loading images
 
 //Shared
 #include "Window.h"
@@ -17,6 +15,8 @@
 #include "Vertex/ColorVertex.h"    
 #include "Vertex/TextureVertex.h"    
 #include "MVPUniform.h"    
+
+#include "Texture.h"
 
 const uint32_t NUM_DRAW_OBJECTS = 2;
 
@@ -75,8 +75,7 @@ MultipleObjectsApp::MultipleObjectsApp()
     , m_commandPool(VK_NULL_HANDLE), m_currentFrame(0), m_recreateSwapChainRequested(false)
     , m_vb(VK_NULL_HANDLE), m_vbMemory(VK_NULL_HANDLE)
     , m_ib(VK_NULL_HANDLE), m_ibMemory(VK_NULL_HANDLE)
-    , m_textureImage(VK_NULL_HANDLE), m_textureImageMemory(VK_NULL_HANDLE)
-    , m_textureImageView(VK_NULL_HANDLE), m_textureSampler(VK_NULL_HANDLE)
+    , m_texture(nullptr)
     , m_window(nullptr) 
 {
 }
@@ -132,9 +131,13 @@ void MultipleObjectsApp::InitVulkan() {
     CreateLogicalDevice();
     CreateDescriptorSetLayout();
     CreateCommandPool();
-    CreateTextureImage();
-    CreateTextureImageView();
-    CreateTextureSampler();
+
+    //Init texture
+    m_texture = new Texture();
+    m_texture->Init(m_physicalDevice, m_logicalDevice, g_allocator, m_commandPool,m_graphicsQueue, 
+        "../Resources/Textures/statue.jpg"
+    );
+
     CreateVertexBuffer();
     CreateIndexBuffer();
     CreateSyncObjects();
@@ -142,7 +145,7 @@ void MultipleObjectsApp::InitVulkan() {
     //Init draw objects
     m_drawObjects.resize(NUM_DRAW_OBJECTS);
     for (uint32_t i=0;i<NUM_DRAW_OBJECTS;++i) {
-        m_drawObjects[i].Init(m_logicalDevice, g_allocator, m_textureImageView, m_textureSampler);
+        m_drawObjects[i].Init(m_logicalDevice, g_allocator, m_texture);
     }
     m_drawObjects[0].SetPos(0,0,0.5);
     m_drawObjects[1].SetPos(0,0,-0.5);
@@ -382,91 +385,6 @@ void MultipleObjectsApp::CreateIndexBuffer() {
 
     vkDestroyBuffer(m_logicalDevice, stagingBuffer, g_allocator);
     vkFreeMemory(m_logicalDevice, stagingBufferMemory, g_allocator);
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-void MultipleObjectsApp::CreateTextureImage() {
-    int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load("../Resources/Textures/statue.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    const VkDeviceSize imageSize = texWidth * texHeight * 4;
-
-    if (!pixels) {
-        throw std::runtime_error("failed to load texture image!");
-    }
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-
-    GraphicsUtility::CreateBuffer(m_physicalDevice, m_logicalDevice, g_allocator, imageSize, 
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-        &stagingBuffer, &stagingBufferMemory
-    );
-
-    GraphicsUtility::CopyCPUDataToBuffer(m_logicalDevice,pixels,stagingBufferMemory,imageSize);
-
-    stbi_image_free(pixels);
-
-    //Create Image buffer. 
-    //VK_IMAGE_USAGE_SAMPLED_BIT: to allow access from the shader
-    GraphicsUtility::CreateImage(m_physicalDevice,m_logicalDevice,g_allocator, texWidth, texHeight,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,VK_FORMAT_R8G8B8A8_UNORM, &m_textureImage,&m_textureImageMemory
-    );
-
-    //Transition the texture image to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-    GraphicsUtility::DoImageLayoutTransition(m_logicalDevice, m_commandPool, m_graphicsQueue, 
-        m_textureImage, VK_FORMAT_R8G8B8A8_UNORM, 
-        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-    );
-
-    //Execute the buffer to image copy operation
-    GraphicsUtility::CopyBufferToImage(m_logicalDevice,m_commandPool, m_graphicsQueue,stagingBuffer, 
-        m_textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-
-    //one last transition to prepare it for shader access:
-    GraphicsUtility::DoImageLayoutTransition(m_logicalDevice, m_commandPool, m_graphicsQueue, 
-        m_textureImage, VK_FORMAT_R8G8B8A8_UNORM, 
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-    );
-
-    vkDestroyBuffer(m_logicalDevice, stagingBuffer, g_allocator);
-    vkFreeMemory(m_logicalDevice, stagingBufferMemory, g_allocator);
-
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
-void MultipleObjectsApp::CreateTextureImageView() {
-    m_textureImageView = GraphicsUtility::CreateImageView(m_logicalDevice, 
-        g_allocator, m_textureImage, VK_FORMAT_R8G8B8A8_UNORM);
-
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-void MultipleObjectsApp::CreateTextureSampler() {
-    VkSamplerCreateInfo samplerInfo = {};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    samplerInfo.maxAnisotropy = 16;
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    samplerInfo.unnormalizedCoordinates = VK_FALSE; //[0..1] range
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerInfo.mipLodBias = 0.0f;
-    samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = 0.0f;
-    
-    if (vkCreateSampler(m_logicalDevice, &samplerInfo, g_allocator, &m_textureSampler) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create texture sampler!");
-    }
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -1245,10 +1163,10 @@ void MultipleObjectsApp::CleanUp() {
     }
 
     //Textures
-    SAFE_DESTROY_SAMPLER(m_logicalDevice,m_textureSampler,g_allocator);
-    SAFE_DESTROY_IMAGE_VIEW(m_logicalDevice, m_textureImageView, g_allocator);
-    SAFE_DESTROY_IMAGE(m_logicalDevice, m_textureImage, g_allocator);
-    SAFE_FREE_MEMORY(m_logicalDevice, m_textureImageMemory, g_allocator);
+    if (nullptr != m_texture) {
+        m_texture->CleanUp(m_logicalDevice, g_allocator);
+        m_texture = nullptr;
+    }
 
     //Vertex and Index Buffers
     SAFE_DESTROY_BUFFER(m_logicalDevice, m_vb, g_allocator);

@@ -5,13 +5,15 @@
 #include <vector>
 
 #include "MVPUniform.h"
+
+class Texture;
+
 class DrawObject {
 
 public: 
     DrawObject();
     
-    void Init(const VkDevice device,VkAllocationCallbacks* allocator, const VkImageView textureImageView, 
-        const VkSampler textureSampler);
+    void Init(const VkDevice device,VkAllocationCallbacks* allocator, const Texture* texture);
     void CleanUp(const VkDevice device,VkAllocationCallbacks* allocator);
     
     //Swap chain
@@ -43,9 +45,7 @@ private:
     MVPUniform                     m_mvpMat;
     std::vector<VkDescriptorSet>   m_descriptorSets; //To bind uniform buffers
 
-    //Temporary
-    VkImageView                 m_textureImageView;
-    VkSampler                   m_textureSampler;
+    const Texture*                 m_texture;
 
     //These Uniform buffers will be updated in every DrawFrame
     std::vector<VkBuffer>          m_uniformBuffers;

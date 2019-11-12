@@ -171,6 +171,7 @@
     <ClCompile Include="DrawObject.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MultipleObjectsApp.cpp" />
+    <ClCompile Include="Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Shared\Src\MVPUniform.h" />
@@ -186,6 +187,7 @@
     <ClInclude Include="DrawObject.h" />
     <ClInclude Include="QueueFamilyIndices.h" />
     <ClInclude Include="MultipleObjectsApp.h" />
+    <ClInclude Include="Texture.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\Shared\Shaders\Texture.frag">
