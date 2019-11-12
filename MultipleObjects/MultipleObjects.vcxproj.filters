@@ -29,9 +29,6 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TriangleApp.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\Shared\Src\Window.cpp">
       <Filter>Shared\Src</Filter>
     </ClCompile>
@@ -47,11 +44,11 @@
     <ClCompile Include="..\Shared\Src\VulkanDebugMessenger.cpp">
       <Filter>Shared\Src</Filter>
     </ClCompile>
+    <ClCompile Include="MultipleObjectsApp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="TriangleApp.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="QueueFamilyIndices.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -85,6 +82,9 @@
     <ClInclude Include="..\Shared\Src\SharedConfig.h">
       <Filter>Shared\Src</Filter>
     </ClInclude>
+    <ClInclude Include="MultipleObjectsApp.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\Shared\Shaders\Texture.frag">
@@ -93,11 +93,13 @@
     <CustomBuild Include="..\Shared\Shaders\Texture.vert">
       <Filter>Shared\Shaders</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\Shared\Shaders\Triangle.frag">
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Shared\Shaders\Triangle.frag">
       <Filter>Shared\Shaders</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\Shared\Shaders\Triangle.vert">
+    </None>
+    <None Include="..\Shared\Shaders\Triangle.vert">
       <Filter>Shared\Shaders</Filter>
-    </CustomBuild>
+    </None>
   </ItemGroup>
 </Project>
