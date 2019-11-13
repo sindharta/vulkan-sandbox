@@ -974,6 +974,7 @@ void MultipleObjectsApp::CleanUp() {
     CleanUpVulkanSwapChain();
 
     SAFE_DESTROY_DESCRIPTOR_SET_LAYOUT(m_logicalDevice,m_texDescriptorSetLayout,g_allocator);
+    SAFE_DESTROY_DESCRIPTOR_SET_LAYOUT(m_logicalDevice,m_colorDescriptorSetLayout,g_allocator);
 
     //Draw Pipelines
     const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());
