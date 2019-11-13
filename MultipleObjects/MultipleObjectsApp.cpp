@@ -1,7 +1,6 @@
 #include "MultipleObjectsApp.h"
-#include <GLFW/glfw3.h> //GLFWwindow
+#include <GLFW/glfw3.h> //glfwGetRequiredInstanceExtensions
 
-#include <glm/gtc/matrix_transform.hpp> //glm::rotate, glm::lookAt, glm::perspective
 #include <stdexcept> //std::runtime_error
 #include <iostream> //cout
 #include <set> 
@@ -9,18 +8,14 @@
 
 //Shared
 #include "Window.h"
-#include "Utilities/FileUtility.h"      //ReadFileInto()
-#include "Utilities/GraphicsUtility.h"    //CreateShaderModule()    
+#include "Utilities/GraphicsUtility.h"    //CreateImageView()    
 #include "Utilities/Macros.h"
 #include "Vertex/ColorVertex.h"    
 #include "Vertex/TextureVertex.h"    
-#include "MVPUniform.h"    
 
 #include "Mesh.h"
 #include "Texture.h"
-
-const uint32_t NUM_DRAW_OBJECTS = 2;
-
+#include "DrawPipeline.h"
 
 VkAllocationCallbacks* g_allocator = nullptr; //Always use default allocator
 
@@ -71,7 +66,6 @@ MultipleObjectsApp::MultipleObjectsApp()
     , m_graphicsQueue(VK_NULL_HANDLE)
     , m_swapChain(VK_NULL_HANDLE), m_renderPass(VK_NULL_HANDLE)
     , m_descriptorPool(VK_NULL_HANDLE)
-    , m_pipelineLayout(VK_NULL_HANDLE), m_graphicsPipeline(VK_NULL_HANDLE)
     , m_descriptorSetLayout(VK_NULL_HANDLE)
     , m_commandPool(VK_NULL_HANDLE), m_currentFrame(0), m_recreateSwapChainRequested(false)
     , m_texture(nullptr)
@@ -138,22 +132,56 @@ void MultipleObjectsApp::InitVulkan() {
     );
 
     //Model
+    const uint32_t numIndices = static_cast<uint32_t>(g_indices.size());
     m_mesh = new Mesh();
     m_mesh->Init(m_physicalDevice, m_logicalDevice, g_allocator, m_commandPool,m_graphicsQueue, 
         reinterpret_cast<const char*>(g_texVertices.data()), static_cast<uint32_t>(sizeof(g_texVertices[0]) * g_texVertices.size()),
-        reinterpret_cast<const char*>(g_indices.data()), static_cast<uint32_t>(sizeof(g_indices[0]) * g_indices.size())
+        reinterpret_cast<const char*>(g_indices.data()), static_cast<uint32_t>(sizeof(g_indices[0]) * numIndices),
+        numIndices
     );
 
 
     CreateSyncObjects();
 
-    //Init draw objects
+    const uint32_t NUM_DRAW_OBJECTS = 5;
+    const uint32_t NUM_DRAW_PIPELINES    = 2;
+
+    //Init drawObjects
     m_drawObjects.resize(NUM_DRAW_OBJECTS);
     for (uint32_t i=0;i<NUM_DRAW_OBJECTS;++i) {
         m_drawObjects[i].Init(m_logicalDevice, g_allocator, m_mesh, m_texture);
+        m_drawObjects[i].SetPos(0,0,-1.0f + (0.5f * i));
     }
-    m_drawObjects[0].SetPos(0,0,0.5);
-    m_drawObjects[1].SetPos(0,0,-0.5);
+
+    //Init pipelines
+    m_drawPipelines.resize(NUM_DRAW_PIPELINES);
+    for (uint32_t i = 0; i < NUM_DRAW_PIPELINES; ++i) {
+        m_drawPipelines[i] = new DrawPipeline();
+    }
+
+    #define SHADER_PATH "../Shared/Shaders/"
+
+    m_drawPipelines[0]->Init(m_logicalDevice, g_allocator,
+        SHADER_PATH "Texture.vert.spv",
+        SHADER_PATH "Texture.frag.spv", 
+        TextureVertex::GetBindingDescription(),
+        TextureVertex::GetAttributeDescriptions(),
+        &m_descriptorSetLayout
+    );
+    m_drawPipelines[1]->Init(m_logicalDevice, g_allocator,
+        SHADER_PATH "Texture.vert.spv",
+        SHADER_PATH "Texture.frag.spv", 
+        TextureVertex::GetBindingDescription(),
+        TextureVertex::GetAttributeDescriptions(),
+        &m_descriptorSetLayout
+    );
+    #undef SHADER_PATH
+
+    m_drawPipelines[0]->AddDrawObject(&m_drawObjects[0]);
+    m_drawPipelines[0]->AddDrawObject(&m_drawObjects[1]);
+    m_drawPipelines[0]->AddDrawObject(&m_drawObjects[2]);
+    m_drawPipelines[1]->AddDrawObject(&m_drawObjects[3]);
+    m_drawPipelines[1]->AddDrawObject(&m_drawObjects[4]);
 
     //Swap
     RecreateSwapChain();
@@ -171,19 +199,27 @@ void MultipleObjectsApp::RecreateSwapChain() {
     CreateSwapChain();
     CreateImageViews();
     CreateRenderPass();
-    CreateGraphicsPipeline();
+
     CreateFrameBuffers();
     CreateDescriptorPool();
 
+    //Recreate pipeline
+    const uint32_t numPipelines = static_cast<uint32_t>(m_drawPipelines.size());
+    for (uint32_t i = 0; i < numPipelines; ++i) {
+        m_drawPipelines[i]->RecreateSwapChainObjects(m_logicalDevice, g_allocator, 
+            m_renderPass, m_swapChainExtent            
+        );
+    }
+
     //Recreate DrawObjects' swap chain related objects
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
-    m_drawObjects.resize(NUM_DRAW_OBJECTS);
-    for (uint32_t i=0;i<NUM_DRAW_OBJECTS;++i) {
+    const uint32_t numDrawObjects = static_cast<uint32_t>(m_drawObjects.size());
+    for (uint32_t i=0;i<numDrawObjects;++i) {
         m_drawObjects[i].RecreateSwapChainObjects(m_physicalDevice, m_logicalDevice, g_allocator, 
             m_descriptorPool, numImages, m_descriptorSetLayout);
         m_drawObjects[i].SetProj(m_swapChainExtent.width / static_cast<float> (m_swapChainExtent.height));
-
     }
+
 
     CreateCommandBuffers();
     m_recreateSwapChainRequested = false;
@@ -369,27 +405,9 @@ void MultipleObjectsApp::CreateCommandBuffers() {
         renderPassInfo.pClearValues = &clearColor; //to be used by VK_ATTACHMENT_LOAD_OP_CLEAR, when creating RenderPass
         vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        vkCmdBindPipeline(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
-
-
-        //Draw multiple objects
-        const uint32_t numObjects = static_cast<uint32_t>(m_drawObjects.size());
-        for (uint32_t j = 0; j < numObjects; ++j) {
-            DrawObject& curDrawObject = m_drawObjects[j];
-            const Mesh* curMesh = curDrawObject.GetMesh();
-            //Bind vertex and index buffers
-
-            VkBuffer vertexBuffers[] = { curMesh->GetVertexBuffer() };
-            VkDeviceSize offsets[] = {0};
-            vkCmdBindVertexBuffers(m_commandBuffers[i], 0, 1, vertexBuffers, offsets);
-            vkCmdBindIndexBuffer(m_commandBuffers[i], curMesh->GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT16);
-
-            const VkDescriptorSet& curDescriptorSet = curDrawObject.GetDescriptorSet(static_cast<uint32_t>(i));
-            vkCmdBindDescriptorSets(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, 
-                m_pipelineLayout, 0, 1, &curDescriptorSet, 0, nullptr
-            );
-
-            vkCmdDrawIndexed(m_commandBuffers[i], static_cast<uint32_t>(g_indices.size()), 1, 0, 0, 0);
+        const uint32_t numPipelines = static_cast<uint32_t>(m_drawPipelines.size());
+        for (uint32_t j = 0; j < numPipelines; ++j) {
+            m_drawPipelines[j]->DrawToCommandBuffer(m_commandBuffers[i], static_cast<uint32_t>(i));
         }
 
         vkCmdEndRenderPass(m_commandBuffers[i]);
@@ -558,7 +576,7 @@ void MultipleObjectsApp::CreateRenderPass() {
 void MultipleObjectsApp::CreateDescriptorPool() {
 
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
-    const uint32_t maxDescriptorCount = NUM_DRAW_OBJECTS * numImages;
+    const uint32_t maxDescriptorCount = static_cast<uint32_t>(m_drawObjects.size()) * numImages;
 
     std::array<VkDescriptorPoolSize, 2> poolSizes = {};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -577,167 +595,6 @@ void MultipleObjectsApp::CreateDescriptorPool() {
     }
 }
 
-//---------------------------------------------------------------------------------------------------------------------
-
-void MultipleObjectsApp::CreateGraphicsPipeline() {
-    #define SHADER_PATH "../Shared/Shaders/"
-    std::vector<char> vertShaderCode, fragShaderCode;
-    FileUtility::ReadFileInto(SHADER_PATH "Texture.vert.spv", &vertShaderCode);
-    FileUtility::ReadFileInto(SHADER_PATH "Texture.frag.spv", &fragShaderCode);
-    #undef SHADER_PATH
-
-    VkShaderModule vertShaderModule = GraphicsUtility::CreateShaderModule(m_logicalDevice, g_allocator, vertShaderCode);
-    VkShaderModule fragShaderModule = GraphicsUtility::CreateShaderModule(m_logicalDevice, g_allocator, fragShaderCode);
-
-    //Vertex
-    VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
-    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.module = vertShaderModule;
-    vertShaderStageInfo.pName = "main";
-    vertShaderStageInfo.pSpecializationInfo = nullptr;//To specify shader constants
-
-    //Frag
-    VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
-    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = fragShaderModule;
-    fragShaderStageInfo.pName = "main";
-
-    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
-
-    //Vertex Input
-    const VkVertexInputBindingDescription*  bindingDescription = TextureVertex::GetBindingDescription();
-    const std::vector<VkVertexInputAttributeDescription>* attributeDescriptions = TextureVertex::GetAttributeDescriptions();
-
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions->size());
-    vertexInputInfo.pVertexBindingDescriptions = bindingDescription; 
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions->data(); 
-
-    //Input Assembly
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
-    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-    //Viewport and Scissor 
-    VkViewport viewport = {};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = static_cast<float>(m_swapChainExtent.width);
-    viewport.height = static_cast<float>(m_swapChainExtent.height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-
-    VkRect2D scissor = {};
-    scissor.offset = {0, 0};
-    scissor.extent = m_swapChainExtent;
-
-    VkPipelineViewportStateCreateInfo viewportState = {};
-    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportState.viewportCount = 1;
-    viewportState.pViewports = &viewport;
-    viewportState.scissorCount = 1;
-    viewportState.pScissors = &scissor;
-
-    //Rasterizer
-    VkPipelineRasterizationStateCreateInfo rasterizer = {};
-    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizer.depthClampEnable = VK_FALSE;
-    rasterizer.rasterizerDiscardEnable = VK_FALSE;
-    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-    rasterizer.depthBiasEnable = VK_FALSE;
-    rasterizer.depthBiasConstantFactor = 0.0f; // Optional
-    rasterizer.depthBiasClamp = 0.0f; // Optional
-    rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
-
-    //Multisampling
-    VkPipelineMultisampleStateCreateInfo multisampling = {};
-    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-    multisampling.minSampleShading = 1.0f; // Optional
-    multisampling.pSampleMask = nullptr; // Optional
-    multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
-    multisampling.alphaToOneEnable = VK_FALSE; // Optional
-
-    //Color blending
-    VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = VK_TRUE;
-    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
-    VkPipelineColorBlendStateCreateInfo colorBlending = {};
-    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlending.logicOpEnable = VK_FALSE;
-    colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-    colorBlending.attachmentCount = 1;
-    colorBlending.pAttachments = &colorBlendAttachment;
-    colorBlending.blendConstants[0] = 0.0f; // Optional
-    colorBlending.blendConstants[1] = 0.0f; // Optional
-    colorBlending.blendConstants[2] = 0.0f; // Optional
-    colorBlending.blendConstants[3] = 0.0f; // Optional
-
-    //Dynamic states
-    VkDynamicState dynamicStates[] = {
-        VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_LINE_WIDTH
-    };
-
-    VkPipelineDynamicStateCreateInfo dynamicState = {};
-    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicState.dynamicStateCount = 2;
-    dynamicState.pDynamicStates = dynamicStates;
-
-    //Pipeline layout: to pass uniform values to shaders
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1; 
-    pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout; 
-    pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
-    pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
-    
-    if (vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, g_allocator, &m_pipelineLayout) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create pipeline layout!");
-    }
-
-    //Graphics pipeline
-    VkGraphicsPipelineCreateInfo pipelineInfo = {};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = 2;
-    pipelineInfo.pStages = shaderStages;
-    pipelineInfo.pVertexInputState = &vertexInputInfo;
-    pipelineInfo.pInputAssemblyState = &inputAssembly;
-    pipelineInfo.pViewportState = &viewportState;
-    pipelineInfo.pRasterizationState = &rasterizer;
-    pipelineInfo.pMultisampleState = &multisampling;
-    pipelineInfo.pDepthStencilState = nullptr; // Optional
-    pipelineInfo.pColorBlendState = &colorBlending;
-    pipelineInfo.pDynamicState = nullptr; // Optional
-    pipelineInfo.layout = m_pipelineLayout;
-    pipelineInfo.renderPass = m_renderPass;
-    pipelineInfo.subpass = 0;
-    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
-    pipelineInfo.basePipelineIndex = -1; // Optional
-
-    if (vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, g_allocator, &m_graphicsPipeline) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create graphics pipeline!");
-    }
-
-    vkDestroyShaderModule(m_logicalDevice, fragShaderModule, g_allocator);
-    vkDestroyShaderModule(m_logicalDevice, vertShaderModule, g_allocator);
-}
 
 //---------------------------------------------------------------------------------------------------------------------
 
@@ -934,15 +791,9 @@ void MultipleObjectsApp::DrawFrame() {
 
 //---------------------------------------------------------------------------------------------------------------------
 void MultipleObjectsApp::UpdateVulkanUniformBuffers(uint32_t imageIndex) {
-    //static const auto START_TIME = std::chrono::high_resolution_clock::now();
-    //const auto currentTime = std::chrono::high_resolution_clock::now();
-    //const float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - START_TIME).count();
 
-    //MVPUniform mvp = {};
-    //mvp.ModelMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    //mvp.ViewMat  = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
-    for (uint32_t i = 0; i < NUM_DRAW_OBJECTS; ++i) {
+    const uint32_t numObjects = static_cast<uint32_t>(m_drawObjects.size());
+    for (uint32_t i = 0; i < numObjects; ++i) {
         m_drawObjects[i].UpdateUniformBuffers(m_logicalDevice, imageIndex);
     }
 }
@@ -1104,9 +955,21 @@ void MultipleObjectsApp::CleanUp() {
     CleanUpVulkanSwapChain();
 
     SAFE_DESTROY_DESCRIPTOR_SET_LAYOUT(m_logicalDevice,m_descriptorSetLayout,g_allocator);
-    for (uint32_t i = 0; i < NUM_DRAW_OBJECTS; ++i) {
+
+    //Draw Pipelines
+    const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());
+    for (uint32_t i = 0; i < numDrawPipelines; ++i) {
+        m_drawPipelines[i]->CleanUp(m_logicalDevice, g_allocator);
+        delete(m_drawPipelines[i]);
+    }
+    m_drawPipelines.clear();
+
+    //Draw Objects
+    const uint32_t numDrawObjects = static_cast<uint32_t>(m_drawObjects.size());
+    for (uint32_t i = 0; i < numDrawObjects; ++i) {
         m_drawObjects[i].CleanUp(m_logicalDevice, g_allocator);
     }
+    m_drawObjects.clear();
 
     //Textures
     if (nullptr != m_texture) {
@@ -1157,7 +1020,9 @@ void MultipleObjectsApp::CleanUpVulkanSwapChain() {
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
     vkFreeCommandBuffers(m_logicalDevice, m_commandPool, static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
 
-    for (uint32_t i = 0; i < NUM_DRAW_OBJECTS; ++i) {
+    
+    const uint32_t numDrawObjects = static_cast<uint32_t>(m_drawObjects.size());
+    for (uint32_t i = 0; i < numDrawObjects; ++i) {
         m_drawObjects[i].CleanUpSwapChainObjects(m_logicalDevice, g_allocator, numImages);
     }
 
@@ -1173,8 +1038,12 @@ void MultipleObjectsApp::CleanUpVulkanSwapChain() {
     }
     m_swapChainImages.clear();
 
-    SAFE_DESTROY_PIPELINE(m_logicalDevice, m_graphicsPipeline, g_allocator);
-    SAFE_DESTROY_PIPELINE_LAYOUT(m_logicalDevice, m_pipelineLayout, g_allocator);
+    const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());
+    for (uint32_t i = 0; i < numDrawPipelines; ++i) {
+        m_drawPipelines[i]->CleanUpSwapChainObjects(m_logicalDevice, g_allocator);
+    }
+
+
     SAFE_DESTROY_RENDER_PASS(m_logicalDevice, m_renderPass, g_allocator);
     SAFE_DESTROY_SWAP_CHAIN(m_logicalDevice, m_swapChain, g_allocator);
 }

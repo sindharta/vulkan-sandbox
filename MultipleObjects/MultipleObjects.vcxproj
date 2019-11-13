@@ -168,6 +168,7 @@
     <ClCompile Include="..\Shared\Src\Vertex\TextureVertex.cpp" />
     <ClCompile Include="..\Shared\Src\VulkanDebugMessenger.cpp" />
     <ClCompile Include="..\Shared\Src\Window.cpp" />
+    <ClCompile Include="DrawPipeline.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="DrawObject.cpp" />
     <ClCompile Include="main.cpp" />
@@ -225,7 +226,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\Shared\Shaders\Triangle.frag">
+    <CustomBuild Include="..\Shared\Shaders\Color.frag">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
@@ -240,7 +241,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(FullPath).spv</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(FullPath).spv</Outputs>
     </CustomBuild>
-    <CustomBuild Include="..\Shared\Shaders\Triangle.vert">
+    <CustomBuild Include="..\Shared\Shaders\Color.vert">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">glslangValidator -e main -o %(FullPath).spv -V %(FullPath)  </Command>

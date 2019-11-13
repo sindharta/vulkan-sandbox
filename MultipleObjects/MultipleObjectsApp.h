@@ -16,6 +16,7 @@
 class Window;
 class Texture;
 class Mesh;
+class DrawPipeline;
 
 class MultipleObjectsApp {
 public:
@@ -50,7 +51,6 @@ private:
     void CreateSwapChain();
     void CreateImageViews();
     void CreateRenderPass();
-    void CreateGraphicsPipeline();
     void CreateFrameBuffers();
     void CreateDescriptorPool();
     void CreateCommandBuffers();
@@ -90,8 +90,7 @@ private:
 
     std::vector<DrawObject>         m_drawObjects; // multiple objects
 
-    VkPipelineLayout                m_pipelineLayout; //to pass uniform values to shaders
-    VkPipeline                      m_graphicsPipeline;
+    std::vector<DrawPipeline*>      m_drawPipelines;
     VkCommandPool                   m_commandPool;
 
     Mesh*                       m_mesh;

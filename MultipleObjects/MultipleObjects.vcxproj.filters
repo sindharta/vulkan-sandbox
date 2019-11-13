@@ -56,6 +56,9 @@
     <ClCompile Include="Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DrawPipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="QueueFamilyIndices.h">
@@ -114,10 +117,10 @@
     <CustomBuild Include="..\Shared\Shaders\Texture.vert">
       <Filter>Shared\Shaders</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\Shared\Shaders\Triangle.vert">
+    <CustomBuild Include="..\Shared\Shaders\Color.vert">
       <Filter>Shared\Shaders</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\Shared\Shaders\Triangle.frag">
+    <CustomBuild Include="..\Shared\Shaders\Color.frag">
       <Filter>Shared\Shaders</Filter>
     </CustomBuild>
   </ItemGroup>
