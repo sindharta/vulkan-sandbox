@@ -32,19 +32,19 @@
     <ClCompile Include="TriangleApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Shared\Src\Window.cpp">
-      <Filter>Shared\Src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Shared\Src\Utilities\FileUtility.cpp">
-      <Filter>Shared\Src\Utilities</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Shared\Src\Utilities\GraphicsUtility.cpp">
-      <Filter>Shared\Src\Utilities</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Shared\Src\Vertex\TextureVertex.cpp">
+    <ClCompile Include="..\Shared\Src\Shin\Vertex\TextureVertex.cpp">
       <Filter>Shared\Src\Vertex</Filter>
     </ClCompile>
-    <ClCompile Include="..\Shared\Src\VulkanDebugMessenger.cpp">
+    <ClCompile Include="..\Shared\Src\Shin\Utilities\FileUtility.cpp">
+      <Filter>Shared\Src\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Src\Shin\Utilities\GraphicsUtility.cpp">
+      <Filter>Shared\Src\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Src\Shin\VulkanDebugMessenger.cpp">
+      <Filter>Shared\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Src\Shin\Window.cpp">
       <Filter>Shared\Src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -55,34 +55,31 @@
     <ClInclude Include="QueueFamilyIndices.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Shared\Src\Window.h">
-      <Filter>Shared\Src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Shared\Src\Utilities\FileUtility.h">
-      <Filter>Shared\Src\Utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Shared\Src\Utilities\GraphicsUtility.h">
-      <Filter>Shared\Src\Utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Shared\Src\Utilities\Macros.h">
-      <Filter>Shared\Src\Utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Shared\Src\Vertex\ColorVertex.h">
+    <ClInclude Include="..\Shared\Src\Shin\Vertex\TextureVertex.h">
       <Filter>Shared\Src\Vertex</Filter>
     </ClInclude>
-    <ClInclude Include="..\Shared\Src\Vertex\TextureVertex.h">
-      <Filter>Shared\Src\Vertex</Filter>
+    <ClInclude Include="..\Shared\Src\Shin\Utilities\FileUtility.h">
+      <Filter>Shared\Src\Utilities</Filter>
     </ClInclude>
-    <ClInclude Include="..\Shared\Src\MVPUniform.h">
+    <ClInclude Include="..\Shared\Src\Shin\Utilities\GraphicsUtility.h">
+      <Filter>Shared\Src\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Src\Shin\Utilities\Macros.h">
+      <Filter>Shared\Src\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Src\Shin\MVPUniform.h">
       <Filter>Shared\Src</Filter>
     </ClInclude>
-    <ClInclude Include="..\Shared\Src\PhysicalDeviceSurfaceInfo.h">
+    <ClInclude Include="..\Shared\Src\Shin\PhysicalDeviceSurfaceInfo.h">
       <Filter>Shared\Src</Filter>
     </ClInclude>
-    <ClInclude Include="..\Shared\Src\VulkanDebugMessenger.h">
+    <ClInclude Include="..\Shared\Src\Shin\SharedConfig.h">
       <Filter>Shared\Src</Filter>
     </ClInclude>
-    <ClInclude Include="..\Shared\Src\SharedConfig.h">
+    <ClInclude Include="..\Shared\Src\Shin\VulkanDebugMessenger.h">
+      <Filter>Shared\Src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\Src\Shin\Window.h">
       <Filter>Shared\Src</Filter>
     </ClInclude>
   </ItemGroup>

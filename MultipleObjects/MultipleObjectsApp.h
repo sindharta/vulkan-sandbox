@@ -6,12 +6,12 @@
 #include <map>
 
 //Shared
-#include "SharedConfig.h"
-#include "VulkanDebugMessenger.h"
-#include "PhysicalDeviceSurfaceInfo.h"
+#include "Shin/SharedConfig.h"
+#include "Shin/VulkanDebugMessenger.h"
+#include "Shin/PhysicalDeviceSurfaceInfo.h"
+#include "Shin/DrawObject.h"
 
 #include "QueueFamilyIndices.h"
-#include "Shin/DrawObject.h"
 
 class Window;
 

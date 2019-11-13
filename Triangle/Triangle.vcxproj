@@ -163,25 +163,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Shared\Src\Utilities\FileUtility.cpp" />
-    <ClCompile Include="..\Shared\Src\Utilities\GraphicsUtility.cpp" />
-    <ClCompile Include="..\Shared\Src\Vertex\TextureVertex.cpp" />
-    <ClCompile Include="..\Shared\Src\VulkanDebugMessenger.cpp" />
-    <ClCompile Include="..\Shared\Src\Window.cpp" />
+    <ClCompile Include="..\Shared\Src\Shin\Utilities\FileUtility.cpp" />
+    <ClCompile Include="..\Shared\Src\Shin\Utilities\GraphicsUtility.cpp" />
+    <ClCompile Include="..\Shared\Src\Shin\Vertex\TextureVertex.cpp" />
+    <ClCompile Include="..\Shared\Src\Shin\VulkanDebugMessenger.cpp" />
+    <ClCompile Include="..\Shared\Src\Shin\Window.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="TriangleApp.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Shared\Src\MVPUniform.h" />
-    <ClInclude Include="..\Shared\Src\PhysicalDeviceSurfaceInfo.h" />
-    <ClInclude Include="..\Shared\Src\SharedConfig.h" />
-    <ClInclude Include="..\Shared\Src\Utilities\FileUtility.h" />
-    <ClInclude Include="..\Shared\Src\Utilities\GraphicsUtility.h" />
-    <ClInclude Include="..\Shared\Src\Utilities\Macros.h" />
-    <ClInclude Include="..\Shared\Src\Vertex\ColorVertex.h" />
-    <ClInclude Include="..\Shared\Src\Vertex\TextureVertex.h" />
-    <ClInclude Include="..\Shared\Src\VulkanDebugMessenger.h" />
-    <ClInclude Include="..\Shared\Src\Window.h" />
+    <ClInclude Include="..\Shared\Src\Shin\MVPUniform.h" />
+    <ClInclude Include="..\Shared\Src\Shin\PhysicalDeviceSurfaceInfo.h" />
+    <ClInclude Include="..\Shared\Src\Shin\SharedConfig.h" />
+    <ClInclude Include="..\Shared\Src\Shin\Utilities\FileUtility.h" />
+    <ClInclude Include="..\Shared\Src\Shin\Utilities\GraphicsUtility.h" />
+    <ClInclude Include="..\Shared\Src\Shin\Utilities\Macros.h" />
+    <ClInclude Include="..\Shared\Src\Shin\Vertex\TextureVertex.h" />
+    <ClInclude Include="..\Shared\Src\Shin\VulkanDebugMessenger.h" />
+    <ClInclude Include="..\Shared\Src\Shin\Window.h" />
     <ClInclude Include="QueueFamilyIndices.h" />
     <ClInclude Include="TriangleApp.h" />
   </ItemGroup>

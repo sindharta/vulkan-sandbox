@@ -7,21 +7,20 @@
 #include <set> 
 #include <algorithm>  //max
 #include <chrono>
+#include <array>
 
 #define STB_IMAGE_IMPLEMENTATION    //This will include the implementation of STB, instead of only the header
 #include "stb_image.h"  //for loading images
 
 
-#include "Utilities/FileUtility.h"      //ReadFileInto()
-#include "Utilities/GraphicsUtility.h"    //CreateShaderModule()    
-#include "Utilities/Macros.h"
-
-#include "Vertex/ColorVertex.h"    
-#include "Vertex/TextureVertex.h"    
-#include "MVPUniform.h"    
-
 //Shared
-#include "Window.h"
+#include "Shin/Utilities/FileUtility.h"      //ReadFileInto()
+#include "Shin/Utilities/GraphicsUtility.h"    //CreateShaderModule()    
+#include "Shin/Utilities/Macros.h"
+#include "Shin/Vertex/ColorVertex.h"    
+#include "Shin/Vertex/TextureVertex.h"    
+#include "Shin/MVPUniform.h"    
+#include "Shin/Window.h"
 
 
 VkAllocationCallbacks* g_allocator = nullptr; //Always use default allocator

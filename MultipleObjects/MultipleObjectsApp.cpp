@@ -8,12 +8,11 @@
 
 
 //Shared
-#include "Window.h"
-#include "Utilities/GraphicsUtility.h"    //CreateImageView()    
-#include "Utilities/Macros.h"
-#include "Vertex/ColorVertex.h"    
-#include "Vertex/TextureVertex.h"    
-
+#include "Shin/Window.h"
+#include "Shin/Utilities/GraphicsUtility.h"    //CreateImageView()    
+#include "Shin/Utilities/Macros.h"
+#include "Shin/Vertex/ColorVertex.h"    
+#include "Shin/Vertex/TextureVertex.h"    
 #include "Shin/Mesh.h"
 #include "Shin/Texture.h"
 #include "Shin/DrawPipeline.h"
