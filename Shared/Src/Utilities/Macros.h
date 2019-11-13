@@ -84,6 +84,13 @@
     } \
 }
 
+#define SAFE_DESTROY_SHADER_MODULE(device, obj, allocator) { \
+    if (VK_NULL_HANDLE != obj) { \
+        vkDestroyShaderModule(device, obj, allocator); \
+        obj = VK_NULL_HANDLE; \
+    } \
+}
+
 #define SAFE_DESTROY_DEVICE(device, allocator) { \
     if (VK_NULL_HANDLE != device) { \
         vkDestroyDevice(device, allocator); \
