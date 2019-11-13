@@ -3,9 +3,11 @@
 #include "Utilities/GraphicsUtility.h"
 #include "Utilities/Macros.h"
 
+namespace Shin {
 
 Mesh::Mesh() : m_vb(VK_NULL_HANDLE), m_vbMemory(VK_NULL_HANDLE), 
-                         m_ib(VK_NULL_HANDLE), m_ibMemory(VK_NULL_HANDLE)
+                         m_ib(VK_NULL_HANDLE), m_ibMemory(VK_NULL_HANDLE),
+                         m_numIndices(0)
 {
 
 }
@@ -14,8 +16,10 @@ Mesh::Mesh() : m_vb(VK_NULL_HANDLE), m_vbMemory(VK_NULL_HANDLE),
 
 void Mesh::Init(const VkPhysicalDevice physicalDevice, const VkDevice device, 
     VkAllocationCallbacks* allocator,  const VkCommandPool commandPool, VkQueue queue, 
-    const char* vertexData, const uint32_t vertexDataSize, const char* indexData, const uint32_t indicesDataSize) 
+    const char* vertexData, const uint32_t vertexDataSize, const char* indexData, const uint32_t indicesDataSize, 
+    const uint32_t numIndices) 
 {
+    m_numIndices = numIndices;
     CreateVertexBuffer(physicalDevice, device, allocator, commandPool, queue, vertexData, vertexDataSize);
     CreateIndexBuffer(physicalDevice, device, allocator, commandPool, queue, indexData, indicesDataSize);
 
@@ -97,3 +101,5 @@ void Mesh::CreateIndexBuffer(const VkPhysicalDevice physicalDevice, const VkDevi
     vkDestroyBuffer(device, stagingBuffer, allocator);
     vkFreeMemory(device, stagingBufferMemory, allocator);
 }
+
+} //end namespace

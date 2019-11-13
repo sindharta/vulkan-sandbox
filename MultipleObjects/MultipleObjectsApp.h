@@ -6,16 +6,20 @@
 #include <map>
 
 //Shared
-#include "SharedConfig.h"
-#include "VulkanDebugMessenger.h"
-#include "PhysicalDeviceSurfaceInfo.h"
+#include "Shin/SharedConfig.h"
+#include "Shin/VulkanDebugMessenger.h"
+#include "Shin/PhysicalDeviceSurfaceInfo.h"
+#include "Shin/DrawObject.h"
 
 #include "QueueFamilyIndices.h"
-#include "DrawObject.h"
 
 class Window;
-class Texture;
-class Mesh;
+
+namespace Shin {
+    class Texture;
+    class Mesh;
+    class DrawPipeline;
+}
 
 class MultipleObjectsApp {
 public:
@@ -50,7 +54,6 @@ private:
     void CreateSwapChain();
     void CreateImageViews();
     void CreateRenderPass();
-    void CreateGraphicsPipeline();
     void CreateFrameBuffers();
     void CreateDescriptorPool();
     void CreateCommandBuffers();
@@ -85,17 +88,18 @@ private:
     VkDevice                        m_logicalDevice;
     VkSwapchainKHR                  m_swapChain;
     VkRenderPass                    m_renderPass;
-    VkDescriptorSetLayout           m_descriptorSetLayout;
+    VkDescriptorSetLayout           m_texDescriptorSetLayout;
+    VkDescriptorSetLayout           m_colorDescriptorSetLayout;
     VkDescriptorPool                m_descriptorPool; //A pool to create descriptor set to bind uniform buffers 
 
-    std::vector<DrawObject>         m_drawObjects; // multiple objects
+    std::vector<Shin::DrawObject>   m_drawObjects; // multiple objects
 
-    VkPipelineLayout                m_pipelineLayout; //to pass uniform values to shaders
-    VkPipeline                      m_graphicsPipeline;
+    std::vector<Shin::DrawPipeline*>m_drawPipelines;
     VkCommandPool                   m_commandPool;
 
-    Mesh*                       m_mesh;
-    Texture*                    m_texture;
+    Shin::Mesh*                     m_texMesh;
+    Shin::Mesh*                     m_colorMesh;
+    Shin::Texture*                  m_texture;
 
     std::vector<VkCommandBuffer> m_commandBuffers;
     
@@ -112,10 +116,6 @@ private:
     std::vector<VkFence>        m_inFlightFences; //CPU-GPU synchronizations
     std::vector<VkFence>        m_imagesInFlight; //To test if the current frame is still in flight
     bool                        m_recreateSwapChainRequested;
-
-    //These Uniform buffers will be updated in every DrawFrame
-    //std::vector<VkBuffer>       m_uniformBuffers;
-    //std::vector<VkDeviceMemory> m_uniformBuffersMemory;
 
     //Queues
     QueueFamilyIndices  m_queueFamilyIndices;

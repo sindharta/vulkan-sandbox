@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h> 
 
+namespace Shin {
 class Texture {
 
 public:
@@ -29,3 +30,5 @@ private:
 
 VkImageView Texture::GetImageView() const { return m_textureImageView; }
 VkSampler Texture::GetSampler() const { return m_textureSampler; }
+
+} //end namespace

@@ -9,7 +9,7 @@
 
 #define SAFE_DESTROY_PIPELINE(device, obj, allocator) { \
     if (VK_NULL_HANDLE != obj) { \
-        vkDestroyPipeline(device, obj, g_allocator); \
+        vkDestroyPipeline(device, obj, allocator); \
         obj = VK_NULL_HANDLE; \
     } \
 }
@@ -84,6 +84,13 @@
     } \
 }
 
+#define SAFE_DESTROY_SHADER_MODULE(device, obj, allocator) { \
+    if (VK_NULL_HANDLE != obj) { \
+        vkDestroyShaderModule(device, obj, allocator); \
+        obj = VK_NULL_HANDLE; \
+    } \
+}
+
 #define SAFE_DESTROY_DEVICE(device, allocator) { \
     if (VK_NULL_HANDLE != device) { \
         vkDestroyDevice(device, allocator); \
@@ -91,4 +98,12 @@
     } \
 }
 
+//---------------------------------------------------------------------------------------------------------------------
+#define SAFE_CLEANUP_PTR(device, allocator, obj ) { \
+    if (nullptr != obj) { \
+        obj->CleanUp(device, allocator); \
+        delete(obj); \
+        obj = nullptr; \
+    } \
+}
 

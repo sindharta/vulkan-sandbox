@@ -6,14 +6,17 @@
 
 #include "MVPUniform.h"
 
+namespace Shin {
+
 class Texture;
+class Mesh;
 
 class DrawObject {
 
 public: 
     DrawObject();
     
-    void Init(const VkDevice device,VkAllocationCallbacks* allocator, const Texture* texture);
+    void Init(const VkDevice device,VkAllocationCallbacks* allocator, const Mesh* m_mesh, const Texture* texture);
     void CleanUp(const VkDevice device,VkAllocationCallbacks* allocator);
     
     //Swap chain
@@ -28,9 +31,8 @@ public:
 
     void UpdateUniformBuffers(const VkDevice device, const uint32_t imageIndex);
 
-    //inline uint32_t GetIndicesSize() const;
-    //inline VkDescriptorSetLayout GetDescriptorSetLayout() const;         
     inline const VkDescriptorSet GetDescriptorSet(const uint32_t idx) const;
+    inline const Mesh* GetMesh() const;
 
 private:
 
@@ -41,17 +43,15 @@ private:
 
     glm::vec3                      m_pos;
     MVPUniform                     m_mvpMat;
-    std::vector<VkDescriptorSet>   m_descriptorSets; //To bind uniform buffers
+    std::vector<VkDescriptorSet>   m_descriptorSets; //To bind uniform buffers. One per image in swap chain
 
     const Texture*                 m_texture;
+    const Mesh*                    m_mesh;
 
     //These Uniform buffers will be updated in every DrawFrame
     std::vector<VkBuffer>          m_uniformBuffers;
     std::vector<VkDeviceMemory>    m_uniformBuffersMemory;
 
-    //VkDescriptorSetLayout          m_descriptorSetLayout;
-    //VkBuffer            m_vb;
-    //VkBuffer            m_ib;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -59,5 +59,6 @@ private:
 void DrawObject::SetPos(const float x, const float y, const float z) { m_pos = glm::vec3(x,y,z); }
 void DrawObject::SetPos(const glm::vec3& pos) { m_pos = pos; }
 const VkDescriptorSet DrawObject::GetDescriptorSet(const uint32_t idx) const { return m_descriptorSets[idx]; }
+const Mesh* DrawObject::GetMesh() const { return m_mesh; }
 
-//VkDescriptorSetLayout DrawObject::GetDescriptorSetLayout() const { return m_descriptorSetLayout; }
+};

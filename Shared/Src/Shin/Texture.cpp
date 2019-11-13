@@ -7,6 +7,8 @@
 #include "Utilities/Macros.h"
 #include "Utilities/GraphicsUtility.h"
 
+namespace Shin {
+
 Texture::Texture() : m_textureImage(VK_NULL_HANDLE), m_textureImageMemory(VK_NULL_HANDLE)
     , m_textureImageView(VK_NULL_HANDLE), m_textureSampler(VK_NULL_HANDLE)
 {
@@ -120,3 +122,4 @@ void Texture::CleanUp(const VkDevice device, VkAllocationCallbacks* allocator) {
     SAFE_FREE_MEMORY(device, m_textureImageMemory, allocator);
 }
 
+} //end namespace

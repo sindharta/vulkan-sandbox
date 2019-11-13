@@ -5,10 +5,12 @@
 #include <vector>
 #include <map>
 
-#include "SharedConfig.h"
-#include "VulkanDebugMessenger.h"
+//Shad
+#include "Shin/SharedConfig.h"
+#include "Shin/VulkanDebugMessenger.h"
+#include "Shin/PhysicalDeviceSurfaceInfo.h"
+
 #include "QueueFamilyIndices.h"
-#include "PhysicalDeviceSurfaceInfo.h"
 
 class Window;
 
