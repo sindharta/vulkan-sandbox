@@ -93,11 +93,5 @@
     <CustomBuild Include="..\Shared\Shaders\Texture.vert">
       <Filter>Shared\Shaders</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\Shared\Shaders\Triangle.frag">
-      <Filter>Shared\Shaders</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\Shared\Shaders\Triangle.vert">
-      <Filter>Shared\Shaders</Filter>
-    </CustomBuild>
   </ItemGroup>
 </Project>
