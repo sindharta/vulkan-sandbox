@@ -6,6 +6,8 @@
 
 #include "MVPUniform.h"
 
+namespace Shin {
+
 class Texture;
 class Mesh;
 
@@ -59,4 +61,4 @@ void DrawObject::SetPos(const glm::vec3& pos) { m_pos = pos; }
 const VkDescriptorSet DrawObject::GetDescriptorSet(const uint32_t idx) const { return m_descriptorSets[idx]; }
 const Mesh* DrawObject::GetMesh() const { return m_mesh; }
 
-//VkDescriptorSetLayout DrawObject::GetDescriptorSetLayout() const { return m_descriptorSetLayout; }
+};

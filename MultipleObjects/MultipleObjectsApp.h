@@ -11,12 +11,15 @@
 #include "PhysicalDeviceSurfaceInfo.h"
 
 #include "QueueFamilyIndices.h"
-#include "DrawObject.h"
+#include "Shin/DrawObject.h"
 
 class Window;
-class Texture;
-class Mesh;
-class DrawPipeline;
+
+namespace Shin {
+    class Texture;
+    class Mesh;
+    class DrawPipeline;
+}
 
 class MultipleObjectsApp {
 public:
@@ -89,14 +92,14 @@ private:
     VkDescriptorSetLayout           m_colorDescriptorSetLayout;
     VkDescriptorPool                m_descriptorPool; //A pool to create descriptor set to bind uniform buffers 
 
-    std::vector<DrawObject>         m_drawObjects; // multiple objects
+    std::vector<Shin::DrawObject>   m_drawObjects; // multiple objects
 
-    std::vector<DrawPipeline*>      m_drawPipelines;
+    std::vector<Shin::DrawPipeline*>m_drawPipelines;
     VkCommandPool                   m_commandPool;
 
-    Mesh*                       m_texMesh;
-    Mesh*                       m_colorMesh;
-    Texture*                    m_texture;
+    Shin::Mesh*                     m_texMesh;
+    Shin::Mesh*                     m_colorMesh;
+    Shin::Texture*                  m_texture;
 
     std::vector<VkCommandBuffer> m_commandBuffers;
     

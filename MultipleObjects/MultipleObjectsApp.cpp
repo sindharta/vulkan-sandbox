@@ -14,9 +14,9 @@
 #include "Vertex/ColorVertex.h"    
 #include "Vertex/TextureVertex.h"    
 
-#include "Mesh.h"
-#include "Texture.h"
-#include "DrawPipeline.h"
+#include "Shin/Mesh.h"
+#include "Shin/Texture.h"
+#include "Shin/DrawPipeline.h"
 
 VkAllocationCallbacks* g_allocator = nullptr; //Always use default allocator
 
@@ -129,20 +129,20 @@ void MultipleObjectsApp::InitVulkan() {
     CreateCommandPool();
 
     //Init texture
-    m_texture = new Texture();
+    m_texture = new Shin::Texture();
     m_texture->Init(m_physicalDevice, m_logicalDevice, g_allocator, m_commandPool,m_graphicsQueue, 
         "../Resources/Textures/statue.jpg"
     );
 
     //Model
     const uint32_t numIndices = static_cast<uint32_t>(g_indices.size());
-    m_texMesh = new Mesh();
+    m_texMesh = new Shin::Mesh();
     m_texMesh->Init(m_physicalDevice, m_logicalDevice, g_allocator, m_commandPool,m_graphicsQueue, 
         reinterpret_cast<const char*>(g_texVertices.data()), static_cast<uint32_t>(sizeof(g_texVertices[0]) * g_texVertices.size()),
         reinterpret_cast<const char*>(g_indices.data()), static_cast<uint32_t>(sizeof(g_indices[0]) * numIndices),
         numIndices
     );
-    m_colorMesh = new Mesh();
+    m_colorMesh = new Shin::Mesh();
     m_colorMesh->Init(m_physicalDevice, m_logicalDevice, g_allocator, m_commandPool,m_graphicsQueue, 
         reinterpret_cast<const char*>(g_colorVertices.data()), static_cast<uint32_t>(sizeof(g_colorVertices[0]) * g_colorVertices.size()),
         reinterpret_cast<const char*>(g_indices.data()), static_cast<uint32_t>(sizeof(g_indices[0]) * numIndices),
@@ -170,7 +170,7 @@ void MultipleObjectsApp::InitVulkan() {
     //Init pipelines
     m_drawPipelines.resize(NUM_DRAW_PIPELINES);
     for (uint32_t i = 0; i < NUM_DRAW_PIPELINES; ++i) {
-        m_drawPipelines[i] = new DrawPipeline();
+        m_drawPipelines[i] = new Shin::DrawPipeline();
     }
 
     #define SHADER_PATH "../Shared/Shaders/"

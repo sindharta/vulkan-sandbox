@@ -47,20 +47,20 @@
     <ClCompile Include="MultipleObjectsApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DrawObject.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Texture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Mesh.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DrawPipeline.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\Shared\Src\Vertex\ColorVertex.cpp">
       <Filter>Shared\Src\Vertex</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Src\Shin\DrawObject.cpp">
+      <Filter>Shared\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Src\Shin\DrawPipeline.cpp">
+      <Filter>Shared\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Src\Shin\Mesh.cpp">
+      <Filter>Shared\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\Src\Shin\Texture.cpp">
+      <Filter>Shared\Src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -100,17 +100,17 @@
     <ClInclude Include="MultipleObjectsApp.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="DrawObject.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="..\Shared\Src\Shin\DrawObject.h">
+      <Filter>Shared\Src</Filter>
     </ClInclude>
-    <ClInclude Include="Texture.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="..\Shared\Src\Shin\DrawPipeline.h">
+      <Filter>Shared\Src</Filter>
     </ClInclude>
-    <ClInclude Include="DrawPipeline.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="..\Shared\Src\Shin\Mesh.h">
+      <Filter>Shared\Src</Filter>
     </ClInclude>
-    <ClInclude Include="Mesh.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="..\Shared\Src\Shin\Texture.h">
+      <Filter>Shared\Src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

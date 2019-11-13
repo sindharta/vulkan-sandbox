@@ -4,8 +4,10 @@
 #include "Utilities/FileUtility.h"
 #include "Utilities/Macros.h"
 
-#include "Mesh.h"
+#include "Shin/Mesh.h"
 #include "DrawObject.h"
+
+namespace Shin {
 
 DrawPipeline::DrawPipeline() : m_pipeline(VK_NULL_HANDLE), m_pipelineLayout(VK_NULL_HANDLE), 
     m_bindingDescriptions(nullptr), m_attributeDescriptions(nullptr),
@@ -244,3 +246,5 @@ void DrawPipeline::DrawToCommandBuffer(const VkCommandBuffer commandBuffer, cons
 void DrawPipeline::AddDrawObject(DrawObject* obj) {
     m_drawObjects.push_back(obj);
 }
+
+} //end namespace

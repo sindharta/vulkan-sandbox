@@ -2,6 +2,8 @@
 
 #include <vulkan/vulkan.h> 
 
+namespace Shin {
+
 class Mesh {
 
 public:
@@ -38,3 +40,5 @@ private:
 VkBuffer Mesh::GetVertexBuffer() const { return m_vb; }
 VkBuffer Mesh::GetIndexBuffer() const { return m_ib; }
 uint32_t Mesh::GetNumIndices() const { return m_numIndices; }
+
+}

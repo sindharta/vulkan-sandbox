@@ -6,6 +6,8 @@
 
 #include "DrawObject.h"
 
+namespace Shin {
+
 class DrawPipeline {
 public:
 
@@ -44,5 +46,7 @@ private:
     VkDescriptorSetLayout                                   m_descriptorSetLayout;
 
 
+
+};
 
 };

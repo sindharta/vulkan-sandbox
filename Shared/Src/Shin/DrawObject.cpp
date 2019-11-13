@@ -9,6 +9,7 @@
 
 #include "Texture.h"
 #include "Mesh.h"
+namespace Shin {
 
 DrawObject::DrawObject() {
 
@@ -177,3 +178,4 @@ void DrawObject::CreateDescriptorSets(const VkDevice device, const VkDescriptorP
 }
 
 
+} //end namespace

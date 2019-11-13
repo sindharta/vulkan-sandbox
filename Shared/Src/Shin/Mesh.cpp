@@ -3,6 +3,7 @@
 #include "Utilities/GraphicsUtility.h"
 #include "Utilities/Macros.h"
 
+namespace Shin {
 
 Mesh::Mesh() : m_vb(VK_NULL_HANDLE), m_vbMemory(VK_NULL_HANDLE), 
                          m_ib(VK_NULL_HANDLE), m_ibMemory(VK_NULL_HANDLE),
@@ -100,3 +101,5 @@ void Mesh::CreateIndexBuffer(const VkPhysicalDevice physicalDevice, const VkDevi
     vkDestroyBuffer(device, stagingBuffer, allocator);
     vkFreeMemory(device, stagingBufferMemory, allocator);
 }
+
+} //end namespace
