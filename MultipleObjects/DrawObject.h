@@ -29,8 +29,6 @@ public:
 
     void UpdateUniformBuffers(const VkDevice device, const uint32_t imageIndex);
 
-    //inline uint32_t GetIndicesSize() const;
-    //inline VkDescriptorSetLayout GetDescriptorSetLayout() const;         
     inline const VkDescriptorSet GetDescriptorSet(const uint32_t idx) const;
     inline const Mesh* GetMesh() const;
 
@@ -43,7 +41,7 @@ private:
 
     glm::vec3                      m_pos;
     MVPUniform                     m_mvpMat;
-    std::vector<VkDescriptorSet>   m_descriptorSets; //To bind uniform buffers
+    std::vector<VkDescriptorSet>   m_descriptorSets; //To bind uniform buffers. One per image in swap chain
 
     const Texture*                 m_texture;
     const Mesh*                    m_mesh;
@@ -52,9 +50,6 @@ private:
     std::vector<VkBuffer>          m_uniformBuffers;
     std::vector<VkDeviceMemory>    m_uniformBuffersMemory;
 
-    //VkDescriptorSetLayout          m_descriptorSetLayout;
-    //VkBuffer            m_vb;
-    //VkBuffer            m_ib;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
