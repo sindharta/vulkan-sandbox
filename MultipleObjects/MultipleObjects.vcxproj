@@ -165,6 +165,7 @@
   <ItemGroup>
     <ClCompile Include="..\Shared\Src\Utilities\FileUtility.cpp" />
     <ClCompile Include="..\Shared\Src\Utilities\GraphicsUtility.cpp" />
+    <ClCompile Include="..\Shared\Src\Vertex\ColorVertex.cpp" />
     <ClCompile Include="..\Shared\Src\Vertex\TextureVertex.cpp" />
     <ClCompile Include="..\Shared\Src\VulkanDebugMessenger.cpp" />
     <ClCompile Include="..\Shared\Src\Window.cpp" />

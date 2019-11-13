@@ -5,6 +5,7 @@
 #include "Utilities/Macros.h"
 
 #include "Mesh.h"
+#include "DrawObject.h"
 
 DrawPipeline::DrawPipeline() : m_pipeline(VK_NULL_HANDLE), m_pipelineLayout(VK_NULL_HANDLE), 
     m_bindingDescriptions(nullptr), m_attributeDescriptions(nullptr),
@@ -18,7 +19,7 @@ void DrawPipeline::Init( const VkDevice device, VkAllocationCallbacks* allocator
     const char* vsPath, const char* fsPath,
     const VkVertexInputBindingDescription*  bindingDescriptions,
     const std::vector<VkVertexInputAttributeDescription>* attributeDescriptions,
-    const VkDescriptorSetLayout* descriptorSetLayout
+    const VkDescriptorSetLayout descriptorSetLayout
 ) 
 {
     std::vector<char> vertShaderCode, fragShaderCode;
@@ -51,9 +52,11 @@ void DrawPipeline::CleanUp(const VkDevice device, VkAllocationCallbacks* allocat
 
 //---------------------------------------------------------------------------------------------------------------------
 
-
-void DrawPipeline::RecreateSwapChainObjects(const VkDevice device, VkAllocationCallbacks* allocator,
-    const VkRenderPass renderPass, const VkExtent2D& extent) 
+void DrawPipeline::RecreateSwapChainObjects( const VkPhysicalDevice physicalDevice, const VkDevice device, 
+        VkAllocationCallbacks* allocator, VkDescriptorPool descriptorPool, const uint32_t numImages,
+        const VkRenderPass renderPass,
+        const VkExtent2D& extent
+    )
 {
     //Vertex
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
@@ -167,7 +170,7 @@ void DrawPipeline::RecreateSwapChainObjects(const VkDevice device, VkAllocationC
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1; 
-    pipelineLayoutInfo.pSetLayouts = m_descriptorSetLayout; 
+    pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout; 
     pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
     pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
     
@@ -196,6 +199,15 @@ void DrawPipeline::RecreateSwapChainObjects(const VkDevice device, VkAllocationC
 
     if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, allocator, &m_pipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
+    }
+
+
+    //Registered draw objects
+    const uint32_t numDrawObjects = static_cast<uint32_t>(m_drawObjects.size());
+    for (uint32_t i=0;i<numDrawObjects;++i) {
+        m_drawObjects[i]->RecreateSwapChainObjects(physicalDevice, device, allocator, 
+            descriptorPool, numImages, m_descriptorSetLayout);
+        m_drawObjects[i]->SetProj(extent.width / static_cast<float> (extent.height));
     }
 
 }
@@ -229,6 +241,6 @@ void DrawPipeline::DrawToCommandBuffer(const VkCommandBuffer commandBuffer, cons
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void DrawPipeline::AddDrawObject(const DrawObject* obj) {
+void DrawPipeline::AddDrawObject(DrawObject* obj) {
     m_drawObjects.push_back(obj);
 }

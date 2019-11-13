@@ -85,7 +85,8 @@ private:
     VkDevice                        m_logicalDevice;
     VkSwapchainKHR                  m_swapChain;
     VkRenderPass                    m_renderPass;
-    VkDescriptorSetLayout           m_descriptorSetLayout;
+    VkDescriptorSetLayout           m_texDescriptorSetLayout;
+    VkDescriptorSetLayout           m_colorDescriptorSetLayout;
     VkDescriptorPool                m_descriptorPool; //A pool to create descriptor set to bind uniform buffers 
 
     std::vector<DrawObject>         m_drawObjects; // multiple objects
@@ -93,7 +94,8 @@ private:
     std::vector<DrawPipeline*>      m_drawPipelines;
     VkCommandPool                   m_commandPool;
 
-    Mesh*                       m_mesh;
+    Mesh*                       m_texMesh;
+    Mesh*                       m_colorMesh;
     Texture*                    m_texture;
 
     std::vector<VkCommandBuffer> m_commandBuffers;
@@ -111,10 +113,6 @@ private:
     std::vector<VkFence>        m_inFlightFences; //CPU-GPU synchronizations
     std::vector<VkFence>        m_imagesInFlight; //To test if the current frame is still in flight
     bool                        m_recreateSwapChainRequested;
-
-    //These Uniform buffers will be updated in every DrawFrame
-    //std::vector<VkBuffer>       m_uniformBuffers;
-    //std::vector<VkDeviceMemory> m_uniformBuffersMemory;
 
     //Queues
     QueueFamilyIndices  m_queueFamilyIndices;

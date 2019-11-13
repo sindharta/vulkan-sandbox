@@ -14,11 +14,12 @@ public:
         const char* vsPath, const char* fsPath,
         const VkVertexInputBindingDescription*  bindingDescriptions,
         const std::vector<VkVertexInputAttributeDescription>* attributeDescriptions,
-        const VkDescriptorSetLayout* descriptorSetLayout
+        const VkDescriptorSetLayout descriptorSetLayout
     );
 
     //RenderPass is created when swap chain is changed (swapChainSurfaceFormat might have changed)
-    void RecreateSwapChainObjects( const VkDevice device, VkAllocationCallbacks* allocator,         
+    void RecreateSwapChainObjects( const VkPhysicalDevice physicalDevice, const VkDevice device, 
+        VkAllocationCallbacks* allocator, VkDescriptorPool descriptorPool, const uint32_t numImages,
         const VkRenderPass renderPass,
         const VkExtent2D& extent
     );
@@ -27,11 +28,10 @@ public:
     void CleanUp(const VkDevice device, VkAllocationCallbacks* allocator);
 
     void DrawToCommandBuffer(const VkCommandBuffer commandBuffer, const uint32_t imageIndex);
-    void AddDrawObject(const DrawObject* obj);
-    inline const VkPipeline GetPipeline() const;
+    void AddDrawObject(DrawObject* obj);
 private:
 
-    std::vector<const DrawObject*>     m_drawObjects; // multiple objects
+    std::vector<DrawObject*>     m_drawObjects; // multiple objects
 
     VkPipeline                  m_pipeline;
     VkPipelineLayout            m_pipelineLayout; //to pass uniform values to shaders
@@ -41,7 +41,7 @@ private:
     VkShaderModule                                          m_fragShaderModule;
     const VkVertexInputBindingDescription*                  m_bindingDescriptions;
     const std::vector<VkVertexInputAttributeDescription>*   m_attributeDescriptions;
-    const VkDescriptorSetLayout*                            m_descriptorSetLayout;
+    VkDescriptorSetLayout                                   m_descriptorSetLayout;
 
 
 

@@ -4,6 +4,7 @@
 #include <stdexcept> //std::runtime_error
 #include <iostream> //cout
 #include <set> 
+#include <array> 
 
 
 //Shared
@@ -66,8 +67,10 @@ MultipleObjectsApp::MultipleObjectsApp()
     , m_graphicsQueue(VK_NULL_HANDLE)
     , m_swapChain(VK_NULL_HANDLE), m_renderPass(VK_NULL_HANDLE)
     , m_descriptorPool(VK_NULL_HANDLE)
-    , m_descriptorSetLayout(VK_NULL_HANDLE)
+    , m_colorDescriptorSetLayout(VK_NULL_HANDLE)
+    , m_texDescriptorSetLayout(VK_NULL_HANDLE)
     , m_commandPool(VK_NULL_HANDLE), m_currentFrame(0), m_recreateSwapChainRequested(false)
+    , m_texMesh(nullptr), m_colorMesh(nullptr)
     , m_texture(nullptr)
     , m_window(nullptr) 
 {
@@ -133,9 +136,15 @@ void MultipleObjectsApp::InitVulkan() {
 
     //Model
     const uint32_t numIndices = static_cast<uint32_t>(g_indices.size());
-    m_mesh = new Mesh();
-    m_mesh->Init(m_physicalDevice, m_logicalDevice, g_allocator, m_commandPool,m_graphicsQueue, 
+    m_texMesh = new Mesh();
+    m_texMesh->Init(m_physicalDevice, m_logicalDevice, g_allocator, m_commandPool,m_graphicsQueue, 
         reinterpret_cast<const char*>(g_texVertices.data()), static_cast<uint32_t>(sizeof(g_texVertices[0]) * g_texVertices.size()),
+        reinterpret_cast<const char*>(g_indices.data()), static_cast<uint32_t>(sizeof(g_indices[0]) * numIndices),
+        numIndices
+    );
+    m_colorMesh = new Mesh();
+    m_colorMesh->Init(m_physicalDevice, m_logicalDevice, g_allocator, m_commandPool,m_graphicsQueue, 
+        reinterpret_cast<const char*>(g_colorVertices.data()), static_cast<uint32_t>(sizeof(g_colorVertices[0]) * g_colorVertices.size()),
         reinterpret_cast<const char*>(g_indices.data()), static_cast<uint32_t>(sizeof(g_indices[0]) * numIndices),
         numIndices
     );
@@ -148,8 +157,13 @@ void MultipleObjectsApp::InitVulkan() {
 
     //Init drawObjects
     m_drawObjects.resize(NUM_DRAW_OBJECTS);
+    m_drawObjects[0].Init(m_logicalDevice, g_allocator, m_texMesh, m_texture);
+    m_drawObjects[1].Init(m_logicalDevice, g_allocator, m_colorMesh, nullptr);
+    m_drawObjects[2].Init(m_logicalDevice, g_allocator, m_texMesh, m_texture);
+    m_drawObjects[3].Init(m_logicalDevice, g_allocator, m_colorMesh, nullptr);
+    m_drawObjects[4].Init(m_logicalDevice, g_allocator, m_texMesh, m_texture);
+
     for (uint32_t i=0;i<NUM_DRAW_OBJECTS;++i) {
-        m_drawObjects[i].Init(m_logicalDevice, g_allocator, m_mesh, m_texture);
         m_drawObjects[i].SetPos(0,0,-1.0f + (0.5f * i));
     }
 
@@ -166,22 +180,22 @@ void MultipleObjectsApp::InitVulkan() {
         SHADER_PATH "Texture.frag.spv", 
         TextureVertex::GetBindingDescription(),
         TextureVertex::GetAttributeDescriptions(),
-        &m_descriptorSetLayout
+        m_texDescriptorSetLayout
     );
     m_drawPipelines[1]->Init(m_logicalDevice, g_allocator,
-        SHADER_PATH "Texture.vert.spv",
-        SHADER_PATH "Texture.frag.spv", 
-        TextureVertex::GetBindingDescription(),
-        TextureVertex::GetAttributeDescriptions(),
-        &m_descriptorSetLayout
+        SHADER_PATH "Color.vert.spv",
+        SHADER_PATH "Color.frag.spv", 
+        ColorVertex::GetBindingDescription(),
+        ColorVertex::GetAttributeDescriptions(),
+        m_colorDescriptorSetLayout
     );
     #undef SHADER_PATH
 
     m_drawPipelines[0]->AddDrawObject(&m_drawObjects[0]);
-    m_drawPipelines[0]->AddDrawObject(&m_drawObjects[1]);
+    m_drawPipelines[1]->AddDrawObject(&m_drawObjects[1]);
     m_drawPipelines[0]->AddDrawObject(&m_drawObjects[2]);
     m_drawPipelines[1]->AddDrawObject(&m_drawObjects[3]);
-    m_drawPipelines[1]->AddDrawObject(&m_drawObjects[4]);
+    m_drawPipelines[0]->AddDrawObject(&m_drawObjects[4]);
 
     //Swap
     RecreateSwapChain();
@@ -204,22 +218,13 @@ void MultipleObjectsApp::RecreateSwapChain() {
     CreateDescriptorPool();
 
     //Recreate pipeline
+    const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
     const uint32_t numPipelines = static_cast<uint32_t>(m_drawPipelines.size());
     for (uint32_t i = 0; i < numPipelines; ++i) {
-        m_drawPipelines[i]->RecreateSwapChainObjects(m_logicalDevice, g_allocator, 
-            m_renderPass, m_swapChainExtent            
+        m_drawPipelines[i]->RecreateSwapChainObjects(m_physicalDevice, m_logicalDevice, g_allocator, 
+            m_descriptorPool, numImages, m_renderPass, m_swapChainExtent            
         );
     }
-
-    //Recreate DrawObjects' swap chain related objects
-    const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
-    const uint32_t numDrawObjects = static_cast<uint32_t>(m_drawObjects.size());
-    for (uint32_t i=0;i<numDrawObjects;++i) {
-        m_drawObjects[i].RecreateSwapChainObjects(m_physicalDevice, m_logicalDevice, g_allocator, 
-            m_descriptorPool, numImages, m_descriptorSetLayout);
-        m_drawObjects[i].SetProj(m_swapChainExtent.width / static_cast<float> (m_swapChainExtent.height));
-    }
-
 
     CreateCommandBuffers();
     m_recreateSwapChainRequested = false;
@@ -332,24 +337,39 @@ void MultipleObjectsApp::CreateDescriptorSetLayout() {
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //which shader stage will use this
     uboLayoutBinding.pImmutableSamplers = nullptr; 
 
-    //Texture Sampler
-    VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-    samplerLayoutBinding.binding = 1;
-    samplerLayoutBinding.descriptorCount = 1;
-    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
+    {
+        //Texture Sampler
+        VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+        samplerLayoutBinding.binding = 1;
+        samplerLayoutBinding.descriptorCount = 1;
+        samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        samplerLayoutBinding.pImmutableSamplers = nullptr;
 
-    //Bind
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
-    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-    layoutInfo.pBindings = bindings.data();
+        //Bind
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
+        VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        layoutInfo.pBindings = bindings.data();
 
-    if (vkCreateDescriptorSetLayout(m_logicalDevice, &layoutInfo, g_allocator, &m_descriptorSetLayout) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create descriptor set layout!");
+        if (vkCreateDescriptorSetLayout(m_logicalDevice, &layoutInfo, g_allocator, &m_texDescriptorSetLayout) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
     }
+
+    {
+        std::array<VkDescriptorSetLayoutBinding, 1> bindings = {uboLayoutBinding};
+        VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        layoutInfo.pBindings = bindings.data();
+        if (vkCreateDescriptorSetLayout(m_logicalDevice, &layoutInfo, g_allocator, &m_colorDescriptorSetLayout) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
+
+    }
+
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -954,7 +974,7 @@ void MultipleObjectsApp::CleanUp() {
 
     CleanUpVulkanSwapChain();
 
-    SAFE_DESTROY_DESCRIPTOR_SET_LAYOUT(m_logicalDevice,m_descriptorSetLayout,g_allocator);
+    SAFE_DESTROY_DESCRIPTOR_SET_LAYOUT(m_logicalDevice,m_texDescriptorSetLayout,g_allocator);
 
     //Draw Pipelines
     const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());
@@ -972,18 +992,12 @@ void MultipleObjectsApp::CleanUp() {
     m_drawObjects.clear();
 
     //Textures
-    if (nullptr != m_texture) {
-        m_texture->CleanUp(m_logicalDevice, g_allocator);
-        delete(m_texture);
-        m_texture = nullptr;
-    }
+    SAFE_CLEANUP_PTR(m_logicalDevice, g_allocator, m_texture);
 
     //Model
-    if (nullptr != m_mesh) {
-        m_mesh->CleanUp(m_logicalDevice, g_allocator);
-        delete(m_mesh);
-        m_mesh = nullptr;
-    }
+    SAFE_CLEANUP_PTR(m_logicalDevice, g_allocator, m_texMesh);
+    SAFE_CLEANUP_PTR(m_logicalDevice, g_allocator, m_colorMesh);
+
 
     SAFE_DESTROY_COMMAND_POOL(m_logicalDevice, m_commandPool, g_allocator);
 

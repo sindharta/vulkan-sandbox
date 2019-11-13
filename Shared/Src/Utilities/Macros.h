@@ -98,4 +98,12 @@
     } \
 }
 
+//---------------------------------------------------------------------------------------------------------------------
+#define SAFE_CLEANUP_PTR(device, allocator, obj ) { \
+    if (nullptr != obj) { \
+        obj->CleanUp(device, allocator); \
+        delete(obj); \
+        obj = nullptr; \
+    } \
+}
 

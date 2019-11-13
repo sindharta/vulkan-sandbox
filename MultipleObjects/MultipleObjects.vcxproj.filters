@@ -59,6 +59,9 @@
     <ClCompile Include="DrawPipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Shared\Src\Vertex\ColorVertex.cpp">
+      <Filter>Shared\Src\Vertex</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="QueueFamilyIndices.h">
