@@ -199,7 +199,7 @@ void DrawPipeline::RecreateSwapChainObjects( const VkPhysicalDevice physicalDevi
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pDepthStencilState = nullptr; // Optional
     pipelineInfo.pColorBlendState = &colorBlending;
-    pipelineInfo.pDynamicState = nullptr; // Optional
+    pipelineInfo.pDynamicState = nullptr; 
     pipelineInfo.layout = m_pipelineLayout;
     pipelineInfo.renderPass = renderPass;
     pipelineInfo.subpass = 0;
@@ -223,8 +223,13 @@ void DrawPipeline::RecreateSwapChainObjects( const VkPhysicalDevice physicalDevi
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void DrawPipeline::DrawToCommandBuffer(const VkCommandBuffer commandBuffer, const uint32_t imageIndex) {
+void DrawPipeline::Bind(const VkCommandBuffer commandBuffer) {
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void DrawPipeline::DrawToCommandBuffer(const VkCommandBuffer commandBuffer, const uint32_t imageIndex) {
 
     //Draw multiple objects
     const uint32_t numObjects = static_cast<uint32_t>(m_drawObjects.size());

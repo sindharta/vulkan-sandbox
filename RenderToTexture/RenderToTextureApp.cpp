@@ -464,6 +464,8 @@ void RenderToTextureApp::CreateCommandBuffers() {
 
             const uint32_t numPipelines = static_cast<uint32_t>(m_drawPipelines.size());
             for (uint32_t j = 0; j < numPipelines; ++j) {
+
+                m_drawPipelines[j]->Bind(m_commandBuffers[i]);
                 m_drawPipelines[j]->DrawToCommandBuffer(m_commandBuffers[i], static_cast<uint32_t>(i));
             }
             vkCmdEndRenderPass(m_commandBuffers[i]);
@@ -482,6 +484,7 @@ void RenderToTextureApp::CreateCommandBuffers() {
 			renderPassInfo.pClearValues = &clearColor;
 
             vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+            m_quadDrawPipeline->Bind(m_commandBuffers[i]);
             m_quadDrawPipeline->DrawToCommandBuffer(m_commandBuffers[i], static_cast<uint32_t>(i));
             vkCmdEndRenderPass(m_commandBuffers[i]);
         }

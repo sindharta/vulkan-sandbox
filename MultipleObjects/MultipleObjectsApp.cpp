@@ -426,6 +426,7 @@ void MultipleObjectsApp::CreateCommandBuffers() {
 
         const uint32_t numPipelines = static_cast<uint32_t>(m_drawPipelines.size());
         for (uint32_t j = 0; j < numPipelines; ++j) {
+            m_drawPipelines[j]->Bind(m_commandBuffers[i]);
             m_drawPipelines[j]->DrawToCommandBuffer(m_commandBuffers[i], static_cast<uint32_t>(i));
         }
 
