@@ -5,6 +5,7 @@
 #include <iostream> //cout
 #include <set> 
 #include <array> 
+#include <chrono>
 
 
 //Shared
@@ -812,8 +813,13 @@ void MultipleObjectsApp::DrawFrame() {
 //---------------------------------------------------------------------------------------------------------------------
 void MultipleObjectsApp::UpdateVulkanUniformBuffers(uint32_t imageIndex) {
 
+    static const auto START_TIME = std::chrono::high_resolution_clock::now();
+    const auto currentTime = std::chrono::high_resolution_clock::now();
+    const float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - START_TIME).count();
+
     const uint32_t numObjects = static_cast<uint32_t>(m_drawObjects.size());
     for (uint32_t i = 0; i < numObjects; ++i) {
+        m_drawObjects[i].Rotate(time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         m_drawObjects[i].UpdateUniformBuffers(m_logicalDevice, imageIndex);
     }
 }

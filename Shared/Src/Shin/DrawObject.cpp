@@ -1,7 +1,6 @@
 
 #include "DrawObject.h"
 #include <array>
-#include <chrono>
 #include <glm/gtc/matrix_transform.hpp> //glm::rotate, glm::lookAt, glm::perspective
 
 #include "Utilities/Macros.h"
@@ -13,8 +12,12 @@
 
 namespace Shin {
 
-DrawObject::DrawObject() : m_texture(nullptr), m_offScreenPass(nullptr), m_mesh(nullptr)
+DrawObject::DrawObject() : m_texture(nullptr), m_offScreenPass(nullptr), m_mesh(nullptr),
+    m_rotateMat(glm::mat4(1.0f)), m_scaleMat(glm::mat4(1.0f))
+
 {
+    m_mvpMat.ViewMat  = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    m_mvpMat.ModelMat = glm::mat4(1.0f);
 
 }
 
@@ -24,7 +27,6 @@ void DrawObject::Init(const VkDevice device,VkAllocationCallbacks* allocator, co
 {
     m_mesh = mesh;
     m_texture = texture;
-    m_mvpMat.ViewMat  = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -33,8 +35,6 @@ void DrawObject::Init(const VkDevice device, VkAllocationCallbacks* allocator, c
 {
     m_mesh = mesh;
     m_offScreenPass = pass;
-    m_mvpMat.ViewMat  = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -74,15 +74,23 @@ void DrawObject::SetProj(const float perspective) {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
+void DrawObject::SetScale(const float scale) {
+    m_scaleMat = glm::scale(glm::mat4(1.0f), glm::vec3( scale, scale, scale ));
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void DrawObject::Rotate(const float degree, const glm::vec3& axis) {
+
+    m_rotateMat = glm::rotate(glm::mat4(1.0f), degree, axis);
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 
 void DrawObject::UpdateUniformBuffers(const VkDevice device, const uint32_t imageIndex) {
 
-    static const auto START_TIME = std::chrono::high_resolution_clock::now();
-    const auto currentTime = std::chrono::high_resolution_clock::now();
-    const float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - START_TIME).count();
-
     glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), m_pos);
-    m_mvpMat.ModelMat = translationMat * glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    m_mvpMat.ModelMat = translationMat * m_scaleMat *   m_rotateMat;
 
     GraphicsUtility::CopyCPUDataToBuffer(device, &m_mvpMat, m_uniformBuffersMemory[imageIndex],sizeof(m_mvpMat));
 

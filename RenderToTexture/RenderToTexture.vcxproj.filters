@@ -132,10 +132,8 @@
     <CustomBuild Include="..\Shared\Shaders\Color.frag">
       <Filter>Shared\Shaders</Filter>
     </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\Shared\Shaders\Quad.vert">
+    <CustomBuild Include="..\Shared\Shaders\Quad.vert">
       <Filter>Shared\Shaders</Filter>
-    </None>
+    </CustomBuild>
   </ItemGroup>
 </Project>

@@ -5,6 +5,7 @@
 #include <iostream> //cout
 #include <set> 
 #include <array> 
+#include <chrono>
 
 
 //Shared
@@ -180,6 +181,9 @@ void RenderToTextureApp::InitVulkan() {
     }
 
     m_quadDrawObject.Init(m_logicalDevice, g_allocator,m_quadMesh,&m_offScreenPass);
+    m_smallerQuadDrawObject.Init(m_logicalDevice, g_allocator,m_quadMesh,&m_offScreenPass);
+    m_smallerQuadDrawObject.SetPos(0.5f,0.5f,0.f);
+    m_smallerQuadDrawObject.SetScale(0.5f);
 
     //Init pipelines
     m_drawPipelines.resize(NUM_DRAW_PIPELINES);
@@ -220,6 +224,7 @@ void RenderToTextureApp::InitVulkan() {
     m_drawPipelines[0]->AddDrawObject(&m_drawObjects[4]);
     
     m_quadDrawPipeline->AddDrawObject(&m_quadDrawObject);
+    m_quadDrawPipeline->AddDrawObject(&m_smallerQuadDrawObject);
 
     const uint32_t OFFSCREEN_WIDTH =  800;
     const uint32_t OFFSCREEN_HEIGHT = 600;
@@ -662,7 +667,7 @@ void RenderToTextureApp::CreateRenderPass() {
 
 //A pool to create descriptor set to bind uniform buffers when drawing frame
 void RenderToTextureApp::CreateDescriptorPool() {
-    const uint32_t NUM_QUADS = 1;
+    const uint32_t NUM_QUADS = 2;
 
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
     const uint32_t maxDescriptorCount = (static_cast<uint32_t>(m_drawObjects.size()) + NUM_QUADS) * numImages;
@@ -884,10 +889,18 @@ void RenderToTextureApp::DrawFrame() {
 //---------------------------------------------------------------------------------------------------------------------
 void RenderToTextureApp::UpdateVulkanUniformBuffers(uint32_t imageIndex) {
 
+    static const auto START_TIME = std::chrono::high_resolution_clock::now();
+    const auto currentTime = std::chrono::high_resolution_clock::now();
+    const float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - START_TIME).count();
+
     const uint32_t numObjects = static_cast<uint32_t>(m_drawObjects.size());
     for (uint32_t i = 0; i < numObjects; ++i) {
+        m_drawObjects[i].Rotate(time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         m_drawObjects[i].UpdateUniformBuffers(m_logicalDevice, imageIndex);
     }
+
+    m_quadDrawObject.UpdateUniformBuffers(m_logicalDevice, imageIndex);
+    m_smallerQuadDrawObject.UpdateUniformBuffers(m_logicalDevice, imageIndex);
 }
 
 
@@ -1058,6 +1071,7 @@ void RenderToTextureApp::CleanUp() {
     }
     m_drawObjects.clear();
     m_quadDrawObject.CleanUp(m_logicalDevice, g_allocator);
+    m_smallerQuadDrawObject.CleanUp(m_logicalDevice, g_allocator);
 
     //Draw Pipelines
     const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());

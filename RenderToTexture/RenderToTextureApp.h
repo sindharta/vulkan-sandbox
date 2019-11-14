@@ -105,6 +105,7 @@ private:
     Shin::Texture*                  m_texture;
 
     Shin::DrawObject                m_quadDrawObject; 
+    Shin::DrawObject                m_smallerQuadDrawObject; 
     Shin::DrawPipeline*             m_quadDrawPipeline;
 
     std::vector<VkCommandBuffer> m_commandBuffers;

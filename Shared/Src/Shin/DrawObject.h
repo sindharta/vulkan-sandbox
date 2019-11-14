@@ -32,6 +32,9 @@ public:
     inline void SetPos(const glm::vec3& pos);
     inline void SetPos(const float x, const float y, const float z);
     void SetProj(const float perspective);
+    void SetScale(const float scale);
+
+    void Rotate(const float degree, const glm::vec3& axis);
 
     void UpdateUniformBuffers(const VkDevice device, const uint32_t imageIndex);
 
@@ -46,6 +49,8 @@ private:
         const uint32_t numImages, const VkDescriptorSetLayout  descriptorSetLayout);
 
     glm::vec3                      m_pos;
+    glm::mat4                      m_scaleMat;
+    glm::mat4                      m_rotateMat;
     MVPUniform                     m_mvpMat;
     std::vector<VkDescriptorSet>   m_descriptorSets; //To bind uniform buffers. One per image in swap chain
 
