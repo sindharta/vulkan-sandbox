@@ -62,6 +62,9 @@
     <ClCompile Include="RenderToTextureApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="OffScreenPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="QueueFamilyIndices.h">
@@ -112,6 +115,9 @@
     <ClInclude Include="RenderToTextureApp.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="OffScreenPass.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\Shared\Shaders\Texture.frag">
@@ -126,5 +132,10 @@
     <CustomBuild Include="..\Shared\Shaders\Color.frag">
       <Filter>Shared\Shaders</Filter>
     </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Shared\Shaders\Quad.vert">
+      <Filter>Shared\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

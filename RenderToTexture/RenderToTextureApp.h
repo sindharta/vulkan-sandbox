@@ -12,6 +12,7 @@
 #include "Shin/DrawObject.h"
 
 #include "QueueFamilyIndices.h"
+#include "OffScreenPass.h"
 
 class Window;
 
@@ -81,6 +82,7 @@ private:
 
 
     Window*                         m_window;
+    Shin::OffScreenPass             m_offScreenPass;
 
     VkInstance                      m_instance;
     VkSurfaceKHR                    m_surface;
@@ -99,7 +101,11 @@ private:
 
     Shin::Mesh*                     m_texMesh;
     Shin::Mesh*                     m_colorMesh;
+    Shin::Mesh*                     m_quadMesh;
     Shin::Texture*                  m_texture;
+
+    Shin::DrawObject                m_quadDrawObject; 
+    Shin::DrawPipeline*             m_quadDrawPipeline;
 
     std::vector<VkCommandBuffer> m_commandBuffers;
     

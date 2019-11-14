@@ -48,8 +48,15 @@ const std::vector<TextureVertex> g_texVertices = {
     {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
 };
 
+const std::vector<TextureVertex> g_quadVertices = {
+    {{-1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{-1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
+    {{1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+    {{1.0f, -1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}}
+};
+
 const std::vector<uint16_t> g_indices = {
-    0, 1, 2, 2, 3, 0
+    0, 1, 2, 2, 3, 0,
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -69,6 +76,7 @@ RenderToTextureApp::RenderToTextureApp()
     , m_colorDescriptorSetLayout(VK_NULL_HANDLE)
     , m_texDescriptorSetLayout(VK_NULL_HANDLE)
     , m_commandPool(VK_NULL_HANDLE), m_currentFrame(0), m_recreateSwapChainRequested(false)
+    , m_quadDrawPipeline(nullptr)
     , m_texMesh(nullptr), m_colorMesh(nullptr)
     , m_texture(nullptr)
     , m_window(nullptr) 
@@ -147,7 +155,12 @@ void RenderToTextureApp::InitVulkan() {
         reinterpret_cast<const char*>(g_indices.data()), static_cast<uint32_t>(sizeof(g_indices[0]) * numIndices),
         numIndices
     );
-
+    m_quadMesh = new Shin::Mesh();
+    m_quadMesh->Init(m_physicalDevice, m_logicalDevice, g_allocator, m_commandPool,m_graphicsQueue, 
+        reinterpret_cast<const char*>(g_quadVertices.data()), static_cast<uint32_t>(sizeof(g_quadVertices[0]) * g_quadVertices.size()),
+        reinterpret_cast<const char*>(g_indices.data()), static_cast<uint32_t>(sizeof(g_indices[0]) * numIndices),
+        numIndices
+    );
 
     CreateSyncObjects();
 
@@ -166,11 +179,14 @@ void RenderToTextureApp::InitVulkan() {
         m_drawObjects[i].SetPos(0,0,-1.0f + (0.5f * i));
     }
 
+    m_quadDrawObject.Init(m_logicalDevice, g_allocator,m_quadMesh,m_texture);
+
     //Init pipelines
     m_drawPipelines.resize(NUM_DRAW_PIPELINES);
     for (uint32_t i = 0; i < NUM_DRAW_PIPELINES; ++i) {
         m_drawPipelines[i] = new Shin::DrawPipeline();
     }
+    m_quadDrawPipeline = new Shin::DrawPipeline();
 
     #define SHADER_PATH "../Shared/Shaders/"
 
@@ -188,6 +204,13 @@ void RenderToTextureApp::InitVulkan() {
         ColorVertex::GetAttributeDescriptions(),
         m_colorDescriptorSetLayout
     );
+    m_quadDrawPipeline->Init( m_logicalDevice, g_allocator,
+        SHADER_PATH "Quad.vert.spv",
+        SHADER_PATH "Texture.frag.spv", 
+        TextureVertex::GetBindingDescription(),
+        TextureVertex::GetAttributeDescriptions(),
+        m_texDescriptorSetLayout
+    );
     #undef SHADER_PATH
 
     m_drawPipelines[0]->AddDrawObject(&m_drawObjects[0]);
@@ -195,6 +218,13 @@ void RenderToTextureApp::InitVulkan() {
     m_drawPipelines[0]->AddDrawObject(&m_drawObjects[2]);
     m_drawPipelines[1]->AddDrawObject(&m_drawObjects[3]);
     m_drawPipelines[0]->AddDrawObject(&m_drawObjects[4]);
+    
+    m_quadDrawPipeline->AddDrawObject(&m_quadDrawObject);
+
+    const uint32_t OFFSCREEN_WIDTH = 1024;
+    const uint32_t OFFSCREEN_HEIGHT = 768;
+
+    m_offScreenPass.Init(m_physicalDevice, m_logicalDevice, g_allocator, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
 
     //Swap
     RecreateSwapChain();
@@ -224,6 +254,9 @@ void RenderToTextureApp::RecreateSwapChain() {
             m_descriptorPool, numImages, m_renderPass, m_swapChainExtent            
         );
     }
+    m_quadDrawPipeline->RecreateSwapChainObjects(m_physicalDevice, m_logicalDevice, g_allocator, 
+        m_descriptorPool, numImages, m_renderPass, m_swapChainExtent   
+    );
 
     CreateCommandBuffers();
     m_recreateSwapChainRequested = false;
@@ -411,28 +444,48 @@ void RenderToTextureApp::CreateCommandBuffers() {
             throw std::runtime_error("failed to begin recording command buffer!");
         }
 
-        //Starting a render pass
-        VkRenderPassBeginInfo renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = m_renderPass;
-        renderPassInfo.framebuffer = m_swapChainFramebuffers[i];
-        renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = m_swapChainExtent;
+        const VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
 
-        VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
-        renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clearColor; //to be used by VK_ATTACHMENT_LOAD_OP_CLEAR, when creating RenderPass
-        vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        //First render pass: Offscreen rendering
+        {
+            //VkRenderPassBeginInfo renderPassInfo = {};
+            //renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            //renderPassInfo.renderPass = m_renderPass;
+            //renderPassInfo.framebuffer = m_swapChainFramebuffers[i];
+            //renderPassInfo.renderArea.offset = {0, 0};
+            //renderPassInfo.renderArea.extent = m_swapChainExtent;
+            //renderPassInfo.clearValueCount = 1;
+            //renderPassInfo.pClearValues = &clearColor; //to be used by VK_ATTACHMENT_LOAD_OP_CLEAR, when creating RenderPass
+            //vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        const uint32_t numPipelines = static_cast<uint32_t>(m_drawPipelines.size());
-        for (uint32_t j = 0; j < numPipelines; ++j) {
-            m_drawPipelines[j]->DrawToCommandBuffer(m_commandBuffers[i], static_cast<uint32_t>(i));
+            //const uint32_t numPipelines = static_cast<uint32_t>(m_drawPipelines.size());
+            //for (uint32_t j = 0; j < numPipelines; ++j) {
+            //    m_drawPipelines[j]->DrawToCommandBuffer(m_commandBuffers[i], static_cast<uint32_t>(i));
+            //}
+            //vkCmdEndRenderPass(m_commandBuffers[i]);
         }
 
-        vkCmdEndRenderPass(m_commandBuffers[i]);
+
+		{
+            //Second pass, render to screen
+			VkRenderPassBeginInfo renderPassInfo= {};
+            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassInfo.renderPass = m_renderPass;
+			renderPassInfo.framebuffer = m_swapChainFramebuffers[i];
+            renderPassInfo.renderArea.offset = {0, 0};
+            renderPassInfo.renderArea.extent = m_swapChainExtent;
+			renderPassInfo.clearValueCount = 1;
+			renderPassInfo.pClearValues = &clearColor;
+
+            vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+            m_quadDrawPipeline->DrawToCommandBuffer(m_commandBuffers[i], static_cast<uint32_t>(i));
+            vkCmdEndRenderPass(m_commandBuffers[i]);
+        }
+
         if (vkEndCommandBuffer(m_commandBuffers[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
         }
+
     }
 }
 
@@ -602,9 +655,10 @@ void RenderToTextureApp::CreateRenderPass() {
 
 //A pool to create descriptor set to bind uniform buffers when drawing frame
 void RenderToTextureApp::CreateDescriptorPool() {
+    const uint32_t NUM_QUADS = 1;
 
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
-    const uint32_t maxDescriptorCount = static_cast<uint32_t>(m_drawObjects.size()) * numImages;
+    const uint32_t maxDescriptorCount = (static_cast<uint32_t>(m_drawObjects.size()) + NUM_QUADS) * numImages;
 
     std::array<VkDescriptorPoolSize, 2> poolSizes = {};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -988,13 +1042,7 @@ void RenderToTextureApp::CleanUp() {
     SAFE_DESTROY_DESCRIPTOR_SET_LAYOUT(m_logicalDevice,m_texDescriptorSetLayout,g_allocator);
     SAFE_DESTROY_DESCRIPTOR_SET_LAYOUT(m_logicalDevice,m_colorDescriptorSetLayout,g_allocator);
 
-    //Draw Pipelines
-    const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());
-    for (uint32_t i = 0; i < numDrawPipelines; ++i) {
-        m_drawPipelines[i]->CleanUp(m_logicalDevice, g_allocator);
-        delete(m_drawPipelines[i]);
-    }
-    m_drawPipelines.clear();
+    m_offScreenPass.CleanUp(m_logicalDevice, g_allocator);
 
     //Draw Objects
     const uint32_t numDrawObjects = static_cast<uint32_t>(m_drawObjects.size());
@@ -1002,6 +1050,17 @@ void RenderToTextureApp::CleanUp() {
         m_drawObjects[i].CleanUp(m_logicalDevice, g_allocator);
     }
     m_drawObjects.clear();
+    m_quadDrawObject.CleanUp(m_logicalDevice, g_allocator);
+
+    //Draw Pipelines
+    const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());
+    for (uint32_t i = 0; i < numDrawPipelines; ++i) {
+        m_drawPipelines[i]->CleanUp(m_logicalDevice, g_allocator);
+        delete(m_drawPipelines[i]);
+    }
+    m_drawPipelines.clear();
+    SAFE_CLEANUP_PTR(m_logicalDevice, g_allocator, m_quadDrawPipeline);
+    
 
     //Textures
     SAFE_CLEANUP_PTR(m_logicalDevice, g_allocator, m_texture);
@@ -1046,14 +1105,19 @@ void RenderToTextureApp::CleanUpVulkanSwapChain() {
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
     vkFreeCommandBuffers(m_logicalDevice, m_commandPool, static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
 
-    
     const uint32_t numDrawObjects = static_cast<uint32_t>(m_drawObjects.size());
+    m_quadDrawObject.CleanUpSwapChainObjects(m_logicalDevice, g_allocator);
     for (uint32_t i = 0; i < numDrawObjects; ++i) {
-        m_drawObjects[i].CleanUpSwapChainObjects(m_logicalDevice, g_allocator, numImages);
+        m_drawObjects[i].CleanUpSwapChainObjects(m_logicalDevice, g_allocator);
+    }
+
+    m_quadDrawPipeline->CleanUpSwapChainObjects(m_logicalDevice, g_allocator);
+    const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());
+    for (uint32_t i = 0; i < numDrawPipelines; ++i) {
+        m_drawPipelines[i]->CleanUpSwapChainObjects(m_logicalDevice, g_allocator);
     }
 
     SAFE_DESTROY_DESCRIPTOR_POOL(m_logicalDevice, m_descriptorPool, g_allocator);
-
     for (VkFramebuffer& framebuffer : m_swapChainFramebuffers) {
         vkDestroyFramebuffer(m_logicalDevice, framebuffer, g_allocator);
     }
@@ -1063,12 +1127,6 @@ void RenderToTextureApp::CleanUpVulkanSwapChain() {
         vkDestroyImageView(m_logicalDevice, imageView, g_allocator);
     }
     m_swapChainImages.clear();
-
-    const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());
-    for (uint32_t i = 0; i < numDrawPipelines; ++i) {
-        m_drawPipelines[i]->CleanUpSwapChainObjects(m_logicalDevice, g_allocator);
-    }
-
 
     SAFE_DESTROY_RENDER_PASS(m_logicalDevice, m_renderPass, g_allocator);
     SAFE_DESTROY_SWAP_CHAIN(m_logicalDevice, m_swapChain, g_allocator);

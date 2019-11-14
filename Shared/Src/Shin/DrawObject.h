@@ -23,7 +23,7 @@ public:
     void RecreateSwapChainObjects(const VkPhysicalDevice physicalDevice, const VkDevice device, 
         VkAllocationCallbacks* allocator, const VkDescriptorPool descriptorPool, 
         const uint32_t numImages, const VkDescriptorSetLayout  descriptorSetLayout);
-    void CleanUpSwapChainObjects(const VkDevice device,VkAllocationCallbacks* allocator, const uint32_t numImages);
+    void CleanUpSwapChainObjects(const VkDevice device,VkAllocationCallbacks* allocator);
 
     inline void SetPos(const glm::vec3& pos);
     inline void SetPos(const float x, const float y, const float z);

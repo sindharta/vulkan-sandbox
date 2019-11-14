@@ -41,9 +41,9 @@ void DrawObject::RecreateSwapChainObjects(const VkPhysicalDevice physicalDevice,
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void DrawObject::CleanUpSwapChainObjects(const VkDevice device, VkAllocationCallbacks* allocator, 
-    const uint32_t numImages) 
+void DrawObject::CleanUpSwapChainObjects(const VkDevice device, VkAllocationCallbacks* allocator) 
 {
+    const uint32_t numImages =static_cast<uint32_t>(m_uniformBuffers.size());
     for (size_t i = 0; i < numImages; i++) {
         vkDestroyBuffer(device, m_uniformBuffers[i], allocator);
         vkFreeMemory(device, m_uniformBuffersMemory[i], allocator);
