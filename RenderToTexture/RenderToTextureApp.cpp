@@ -772,6 +772,9 @@ void RenderToTextureApp::DrawFrame() {
     VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphores[m_currentFrame]};
 
     //2. Execute the command buffer with that image as attachment in the framebuffer
+    //[Note-sin: 2019-11-14] Waits for the stage that writes to the color attachment. 
+    //So theoretically the driver implementation can already start executing our vertex shader and such 
+    //while the image is not yet available. 
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
     UpdateVulkanUniformBuffers(imageIndex);
