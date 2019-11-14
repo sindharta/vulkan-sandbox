@@ -182,8 +182,8 @@ void RenderToTextureApp::InitVulkan() {
 
     m_quadDrawObject.Init(m_logicalDevice, g_allocator,m_quadMesh,&m_offScreenPass);
     m_smallerQuadDrawObject.Init(m_logicalDevice, g_allocator,m_quadMesh,&m_offScreenPass);
-    m_smallerQuadDrawObject.SetPos(0.5f,0.5f,0.f);
-    m_smallerQuadDrawObject.SetScale(0.5f);
+    m_smallerQuadDrawObject.SetPos(0.75f,0.75f,0.f);
+    m_smallerQuadDrawObject.SetScale(0.25f);
 
     //Init pipelines
     m_drawPipelines.resize(NUM_DRAW_PIPELINES);
