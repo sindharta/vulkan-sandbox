@@ -170,16 +170,16 @@ void RenderToTextureApp::InitVulkan() {
     //Init drawObjects
     m_drawObjects.resize(NUM_DRAW_OBJECTS);
     m_drawObjects[0].Init(m_logicalDevice, g_allocator, m_texMesh, m_texture);
-    m_drawObjects[1].Init(m_logicalDevice, g_allocator, m_colorMesh, nullptr);
+    m_drawObjects[1].Init(m_logicalDevice, g_allocator, m_colorMesh, static_cast<Shin::Texture*>(nullptr));
     m_drawObjects[2].Init(m_logicalDevice, g_allocator, m_texMesh, m_texture);
-    m_drawObjects[3].Init(m_logicalDevice, g_allocator, m_colorMesh, nullptr);
+    m_drawObjects[3].Init(m_logicalDevice, g_allocator, m_colorMesh, static_cast<Shin::Texture*>(nullptr));
     m_drawObjects[4].Init(m_logicalDevice, g_allocator, m_texMesh, m_texture);
 
     for (uint32_t i=0;i<NUM_DRAW_OBJECTS;++i) {
         m_drawObjects[i].SetPos(0,0,-1.0f + (0.5f * i));
     }
 
-    m_quadDrawObject.Init(m_logicalDevice, g_allocator,m_quadMesh,m_texture);
+    m_quadDrawObject.Init(m_logicalDevice, g_allocator,m_quadMesh,&m_offScreenPass);
 
     //Init pipelines
     m_drawPipelines.resize(NUM_DRAW_PIPELINES);
@@ -221,8 +221,8 @@ void RenderToTextureApp::InitVulkan() {
     
     m_quadDrawPipeline->AddDrawObject(&m_quadDrawObject);
 
-    const uint32_t OFFSCREEN_WIDTH = 1024;
-    const uint32_t OFFSCREEN_HEIGHT = 768;
+    const uint32_t OFFSCREEN_WIDTH =  800;
+    const uint32_t OFFSCREEN_HEIGHT = 600;
 
     m_offScreenPass.Init(OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
 

@@ -9,9 +9,12 @@
 
 #include "Texture.h"
 #include "Mesh.h"
+#include "OffScreenPass.h"
+
 namespace Shin {
 
-DrawObject::DrawObject() {
+DrawObject::DrawObject() : m_texture(nullptr), m_offScreenPass(nullptr), m_mesh(nullptr)
+{
 
 }
 
@@ -26,9 +29,20 @@ void DrawObject::Init(const VkDevice device,VkAllocationCallbacks* allocator, co
 
 //---------------------------------------------------------------------------------------------------------------------
 
+void DrawObject::Init(const VkDevice device, VkAllocationCallbacks* allocator, const Mesh* mesh, const OffScreenPass* pass) 
+{
+    m_mesh = mesh;
+    m_offScreenPass = pass;
+    m_mvpMat.ViewMat  = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 void DrawObject::CleanUp(const VkDevice device, VkAllocationCallbacks* allocator) {
     m_mesh = nullptr;
     m_texture = nullptr;
+    m_offScreenPass = nullptr;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -125,6 +139,44 @@ void DrawObject::CreateDescriptorSets(const VkDevice device, const VkDescriptorP
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = m_texture->GetImageView();
             imageInfo.sampler   = m_texture->GetSampler();
+
+            std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
+
+            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[0].dstSet = m_descriptorSets[i];
+            descriptorWrites[0].dstBinding = 0;
+            descriptorWrites[0].dstArrayElement = 0;
+            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrites[0].descriptorCount = 1;
+            descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[1].dstSet = m_descriptorSets[i];
+            descriptorWrites[1].dstBinding = 1;
+            descriptorWrites[1].dstArrayElement = 0;
+            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[1].descriptorCount = 1;
+            descriptorWrites[1].pImageInfo = &imageInfo;
+
+            vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), 
+                descriptorWrites.data(), 0, nullptr
+            );
+        }
+
+    } else if (nullptr != m_offScreenPass) {
+
+        for (uint32_t i = 0; i < numImages; ++i) {
+
+            VkDescriptorBufferInfo bufferInfo = {};
+            bufferInfo.buffer = m_uniformBuffers[i];
+            bufferInfo.offset = 0;
+            bufferInfo.range = sizeof(MVPUniform);
+
+            VkDescriptorImageInfo imageInfo = {};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = m_offScreenPass->GetTexture(i)->GetImageView();
+            //[TODO-sin:2019-11-14] We only need one sampler actually
+            imageInfo.sampler   = m_offScreenPass->GetTexture(i)->GetSampler();
 
             std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
 

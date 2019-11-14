@@ -157,9 +157,9 @@ void MultipleObjectsApp::InitVulkan() {
     //Init drawObjects
     m_drawObjects.resize(NUM_DRAW_OBJECTS);
     m_drawObjects[0].Init(m_logicalDevice, g_allocator, m_texMesh, m_texture);
-    m_drawObjects[1].Init(m_logicalDevice, g_allocator, m_colorMesh, nullptr);
+    m_drawObjects[1].Init(m_logicalDevice, g_allocator, m_colorMesh, static_cast<Shin::Texture*>(nullptr));
     m_drawObjects[2].Init(m_logicalDevice, g_allocator, m_texMesh, m_texture);
-    m_drawObjects[3].Init(m_logicalDevice, g_allocator, m_colorMesh, nullptr);
+    m_drawObjects[3].Init(m_logicalDevice, g_allocator, m_colorMesh, static_cast<Shin::Texture*>(nullptr));
     m_drawObjects[4].Init(m_logicalDevice, g_allocator, m_texMesh, m_texture);
 
     for (uint32_t i=0;i<NUM_DRAW_OBJECTS;++i) {

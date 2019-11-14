@@ -166,6 +166,7 @@
     <ClCompile Include="..\Shared\Src\Shin\DrawObject.cpp" />
     <ClCompile Include="..\Shared\Src\Shin\DrawPipeline.cpp" />
     <ClCompile Include="..\Shared\Src\Shin\Mesh.cpp" />
+    <ClCompile Include="..\Shared\Src\Shin\OffScreenPass.cpp" />
     <ClCompile Include="..\Shared\Src\Shin\Texture.cpp" />
     <ClCompile Include="..\Shared\Src\Shin\Utilities\FileUtility.cpp" />
     <ClCompile Include="..\Shared\Src\Shin\Utilities\GraphicsUtility.cpp" />
@@ -174,7 +175,6 @@
     <ClCompile Include="..\Shared\Src\Shin\VulkanDebugMessenger.cpp" />
     <ClCompile Include="..\Shared\Src\Shin\Window.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="OffScreenPass.cpp" />
     <ClCompile Include="RenderToTextureApp.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -182,6 +182,7 @@
     <ClInclude Include="..\Shared\Src\Shin\DrawPipeline.h" />
     <ClInclude Include="..\Shared\Src\Shin\Mesh.h" />
     <ClInclude Include="..\Shared\Src\Shin\MVPUniform.h" />
+    <ClInclude Include="..\Shared\Src\Shin\OffScreenPass.h" />
     <ClInclude Include="..\Shared\Src\Shin\PhysicalDeviceSurfaceInfo.h" />
     <ClInclude Include="..\Shared\Src\Shin\SharedConfig.h" />
     <ClInclude Include="..\Shared\Src\Shin\Texture.h" />
@@ -192,7 +193,6 @@
     <ClInclude Include="..\Shared\Src\Shin\Vertex\TextureVertex.h" />
     <ClInclude Include="..\Shared\Src\Shin\VulkanDebugMessenger.h" />
     <ClInclude Include="..\Shared\Src\Shin\Window.h" />
-    <ClInclude Include="OffScreenPass.h" />
     <ClInclude Include="QueueFamilyIndices.h" />
     <ClInclude Include="RenderToTextureApp.h" />
   </ItemGroup>

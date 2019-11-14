@@ -62,8 +62,8 @@
     <ClCompile Include="RenderToTextureApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="OffScreenPass.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\Shared\Src\Shin\OffScreenPass.cpp">
+      <Filter>Shared\Src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -115,8 +115,8 @@
     <ClInclude Include="RenderToTextureApp.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="OffScreenPass.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="..\Shared\Src\Shin\OffScreenPass.h">
+      <Filter>Shared\Src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

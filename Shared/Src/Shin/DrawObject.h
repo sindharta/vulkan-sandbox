@@ -10,13 +10,17 @@ namespace Shin {
 
 class Texture;
 class Mesh;
+class OffScreenPass;
 
 class DrawObject {
 
 public: 
     DrawObject();
     
-    void Init(const VkDevice device,VkAllocationCallbacks* allocator, const Mesh* m_mesh, const Texture* texture);
+    //[TODO-sin: 2019-11-14] Probably better to generalize so that we can add Texture, pass into a vector,
+    //and generate descriptor set dynamically
+    void Init(const VkDevice device,VkAllocationCallbacks* allocator, const Mesh* mesh, const Texture* texture);
+    void Init(const VkDevice device,VkAllocationCallbacks* allocator, const Mesh* mesh, const OffScreenPass* pass);
     void CleanUp(const VkDevice device,VkAllocationCallbacks* allocator);
     
     //Swap chain
@@ -46,6 +50,7 @@ private:
     std::vector<VkDescriptorSet>   m_descriptorSets; //To bind uniform buffers. One per image in swap chain
 
     const Texture*                 m_texture;
+    const OffScreenPass*           m_offScreenPass;
     const Mesh*                    m_mesh;
 
     //These Uniform buffers will be updated in every DrawFrame

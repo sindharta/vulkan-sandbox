@@ -10,9 +10,9 @@
 #include "Shin/VulkanDebugMessenger.h"
 #include "Shin/PhysicalDeviceSurfaceInfo.h"
 #include "Shin/DrawObject.h"
+#include "Shin/OffScreenPass.h"
 
 #include "QueueFamilyIndices.h"
-#include "OffScreenPass.h"
 
 class Window;
 
