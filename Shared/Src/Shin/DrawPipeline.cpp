@@ -38,6 +38,13 @@ void DrawPipeline::Init( const VkDevice device, VkAllocationCallbacks* allocator
 
 //---------------------------------------------------------------------------------------------------------------------
 void DrawPipeline::CleanUpSwapChainObjects(const VkDevice device, VkAllocationCallbacks* allocator) {
+
+    //Registered draw objects
+    const uint32_t numDrawObjects = static_cast<uint32_t>(m_drawObjects.size());
+    for (uint32_t i=0;i<numDrawObjects;++i) {
+        m_drawObjects[i]->CleanUpSwapChainObjects(device, allocator);
+    }
+
     SAFE_DESTROY_PIPELINE(device, m_pipeline, allocator);
     SAFE_DESTROY_PIPELINE_LAYOUT(device, m_pipelineLayout, allocator);
 }

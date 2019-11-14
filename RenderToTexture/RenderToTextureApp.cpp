@@ -1105,12 +1105,6 @@ void RenderToTextureApp::CleanUpVulkanSwapChain() {
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
     vkFreeCommandBuffers(m_logicalDevice, m_commandPool, static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
 
-    const uint32_t numDrawObjects = static_cast<uint32_t>(m_drawObjects.size());
-    m_quadDrawObject.CleanUpSwapChainObjects(m_logicalDevice, g_allocator);
-    for (uint32_t i = 0; i < numDrawObjects; ++i) {
-        m_drawObjects[i].CleanUpSwapChainObjects(m_logicalDevice, g_allocator);
-    }
-
     m_quadDrawPipeline->CleanUpSwapChainObjects(m_logicalDevice, g_allocator);
     const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());
     for (uint32_t i = 0; i < numDrawPipelines; ++i) {

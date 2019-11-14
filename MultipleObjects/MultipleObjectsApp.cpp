@@ -1034,12 +1034,11 @@ void MultipleObjectsApp::CleanUpVulkanSwapChain() {
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
     vkFreeCommandBuffers(m_logicalDevice, m_commandPool, static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
 
-    
-    const uint32_t numDrawObjects = static_cast<uint32_t>(m_drawObjects.size());
-    for (uint32_t i = 0; i < numDrawObjects; ++i) {
-        m_drawObjects[i].CleanUpSwapChainObjects(m_logicalDevice, g_allocator, numImages);
+    const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());
+    for (uint32_t i = 0; i < numDrawPipelines; ++i) {
+        m_drawPipelines[i]->CleanUpSwapChainObjects(m_logicalDevice, g_allocator);
     }
-
+    
     SAFE_DESTROY_DESCRIPTOR_POOL(m_logicalDevice, m_descriptorPool, g_allocator);
 
     for (VkFramebuffer& framebuffer : m_swapChainFramebuffers) {
@@ -1052,10 +1051,6 @@ void MultipleObjectsApp::CleanUpVulkanSwapChain() {
     }
     m_swapChainImages.clear();
 
-    const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());
-    for (uint32_t i = 0; i < numDrawPipelines; ++i) {
-        m_drawPipelines[i]->CleanUpSwapChainObjects(m_logicalDevice, g_allocator);
-    }
 
 
     SAFE_DESTROY_RENDER_PASS(m_logicalDevice, m_renderPass, g_allocator);
