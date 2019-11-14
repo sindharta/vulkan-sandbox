@@ -565,7 +565,16 @@ void RenderToTextureApp::CreateRenderPass() {
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
 
-
+    //[Note-sin: 2019-11-14]
+    //- srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT.
+    //  This ensures to transition the image after it is acquired from the presentation engine.
+    //- srcAccessMask can be 0
+    //  1. We don't need to preserve previous results. Our rendering pipeline doesn't use the image 
+    //     before the transition (no reads or writes)
+    //  2. Works in conjunction with m_imageAvailableSemaphores in DrawFrame()
+    //     The acquisition semaphore already guarantees that any external accesses are made visible when the semaphore 
+    //     is signaled. This already ensures any memory accesses from the presentation engine are visible after the 
+    //     barrier.
     VkSubpassDependency dependency = {};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
