@@ -1070,6 +1070,7 @@ void RenderToTextureApp::CleanUp() {
     SAFE_CLEANUP_PTR(m_logicalDevice, g_allocator, m_texture);
 
     //Model
+    SAFE_CLEANUP_PTR(m_logicalDevice, g_allocator, m_quadMesh);
     SAFE_CLEANUP_PTR(m_logicalDevice, g_allocator, m_texMesh);
     SAFE_CLEANUP_PTR(m_logicalDevice, g_allocator, m_colorMesh);
 
