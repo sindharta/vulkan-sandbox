@@ -1,7 +1,6 @@
 
 #include "DrawObject.h"
 #include <array>
-#include <chrono>
 #include <glm/gtc/matrix_transform.hpp> //glm::rotate, glm::lookAt, glm::perspective
 
 #include "Utilities/Macros.h"
@@ -9,9 +8,16 @@
 
 #include "Texture.h"
 #include "Mesh.h"
+#include "OffScreenPass.h"
+
 namespace Shin {
 
-DrawObject::DrawObject() {
+DrawObject::DrawObject() : m_texture(nullptr), m_offScreenPass(nullptr), m_mesh(nullptr),
+    m_rotateMat(glm::mat4(1.0f)), m_scaleMat(glm::mat4(1.0f))
+
+{
+    m_mvpMat.ViewMat  = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    m_mvpMat.ModelMat = glm::mat4(1.0f);
 
 }
 
@@ -21,7 +27,14 @@ void DrawObject::Init(const VkDevice device,VkAllocationCallbacks* allocator, co
 {
     m_mesh = mesh;
     m_texture = texture;
-    m_mvpMat.ViewMat  = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void DrawObject::Init(const VkDevice device, VkAllocationCallbacks* allocator, const Mesh* mesh, const OffScreenPass* pass) 
+{
+    m_mesh = mesh;
+    m_offScreenPass = pass;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -29,6 +42,7 @@ void DrawObject::Init(const VkDevice device,VkAllocationCallbacks* allocator, co
 void DrawObject::CleanUp(const VkDevice device, VkAllocationCallbacks* allocator) {
     m_mesh = nullptr;
     m_texture = nullptr;
+    m_offScreenPass = nullptr;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -41,9 +55,9 @@ void DrawObject::RecreateSwapChainObjects(const VkPhysicalDevice physicalDevice,
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void DrawObject::CleanUpSwapChainObjects(const VkDevice device, VkAllocationCallbacks* allocator, 
-    const uint32_t numImages) 
+void DrawObject::CleanUpSwapChainObjects(const VkDevice device, VkAllocationCallbacks* allocator) 
 {
+    const uint32_t numImages =static_cast<uint32_t>(m_uniformBuffers.size());
     for (size_t i = 0; i < numImages; i++) {
         vkDestroyBuffer(device, m_uniformBuffers[i], allocator);
         vkFreeMemory(device, m_uniformBuffersMemory[i], allocator);
@@ -60,15 +74,23 @@ void DrawObject::SetProj(const float perspective) {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
+void DrawObject::SetScale(const float scale) {
+    m_scaleMat = glm::scale(glm::mat4(1.0f), glm::vec3( scale, scale, scale ));
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void DrawObject::Rotate(const float degree, const glm::vec3& axis) {
+
+    m_rotateMat = glm::rotate(glm::mat4(1.0f), degree, axis);
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 
 void DrawObject::UpdateUniformBuffers(const VkDevice device, const uint32_t imageIndex) {
 
-    static const auto START_TIME = std::chrono::high_resolution_clock::now();
-    const auto currentTime = std::chrono::high_resolution_clock::now();
-    const float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - START_TIME).count();
-
     glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), m_pos);
-    m_mvpMat.ModelMat = translationMat * glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    m_mvpMat.ModelMat = translationMat * m_scaleMat *   m_rotateMat;
 
     GraphicsUtility::CopyCPUDataToBuffer(device, &m_mvpMat, m_uniformBuffersMemory[imageIndex],sizeof(m_mvpMat));
 
@@ -125,6 +147,44 @@ void DrawObject::CreateDescriptorSets(const VkDevice device, const VkDescriptorP
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = m_texture->GetImageView();
             imageInfo.sampler   = m_texture->GetSampler();
+
+            std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
+
+            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[0].dstSet = m_descriptorSets[i];
+            descriptorWrites[0].dstBinding = 0;
+            descriptorWrites[0].dstArrayElement = 0;
+            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrites[0].descriptorCount = 1;
+            descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[1].dstSet = m_descriptorSets[i];
+            descriptorWrites[1].dstBinding = 1;
+            descriptorWrites[1].dstArrayElement = 0;
+            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[1].descriptorCount = 1;
+            descriptorWrites[1].pImageInfo = &imageInfo;
+
+            vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), 
+                descriptorWrites.data(), 0, nullptr
+            );
+        }
+
+    } else if (nullptr != m_offScreenPass) {
+
+        for (uint32_t i = 0; i < numImages; ++i) {
+
+            VkDescriptorBufferInfo bufferInfo = {};
+            bufferInfo.buffer = m_uniformBuffers[i];
+            bufferInfo.offset = 0;
+            bufferInfo.range = sizeof(MVPUniform);
+
+            VkDescriptorImageInfo imageInfo = {};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = m_offScreenPass->GetTexture(i)->GetImageView();
+            //[TODO-sin:2019-11-14] We only need one sampler actually
+            imageInfo.sampler   = m_offScreenPass->GetTexture(i)->GetSampler();
 
             std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
 

@@ -29,6 +29,8 @@ public:
     void CleanUpSwapChainObjects(const VkDevice device, VkAllocationCallbacks* allocator);
     void CleanUp(const VkDevice device, VkAllocationCallbacks* allocator);
 
+    void Bind(const VkCommandBuffer commandBuffer);
+
     void DrawToCommandBuffer(const VkCommandBuffer commandBuffer, const uint32_t imageIndex);
     void AddDrawObject(DrawObject* obj);
 private:

@@ -17,8 +17,8 @@ Texture::Texture() : m_textureImage(VK_NULL_HANDLE), m_textureImageMemory(VK_NUL
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void Texture::Init(const VkPhysicalDevice physicalDevice, const VkDevice device, VkAllocationCallbacks* allocator,  
-    const VkCommandPool commandPool, VkQueue queue, const char* path)
+void Texture::Init(const VkPhysicalDevice physicalDevice, const VkDevice device,  
+    const VkAllocationCallbacks* allocator,  const VkCommandPool commandPool, VkQueue queue, const char* path)
 {
     CreateTextureImage(physicalDevice, device, allocator, commandPool, queue, path);
     CreateTextureImageView(device, allocator);
@@ -26,8 +26,24 @@ void Texture::Init(const VkPhysicalDevice physicalDevice, const VkDevice device,
 }
 
 //---------------------------------------------------------------------------------------------------------------------
+
+void Texture::InitAsRenderTexture(const VkPhysicalDevice physicalDevice, const VkDevice device, 
+    const VkAllocationCallbacks* allocator, const uint32_t width, const uint32_t height) 
+{
+    GraphicsUtility::CreateImage(physicalDevice,device,allocator, width, height,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,VK_FORMAT_R8G8B8A8_UNORM, &m_textureImage,&m_textureImageMemory
+    );
+    CreateTextureImageView(device, allocator);
+    CreateTextureSampler(device, allocator);
+
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 void Texture::CreateTextureImage(const VkPhysicalDevice physicalDevice, const VkDevice device, 
-    VkAllocationCallbacks* allocator,  const VkCommandPool commandPool, VkQueue queue, const char* path) 
+    const VkAllocationCallbacks* allocator,  const VkCommandPool commandPool, VkQueue queue, const char* path) 
 {
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(path, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -81,14 +97,14 @@ void Texture::CreateTextureImage(const VkPhysicalDevice physicalDevice, const Vk
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void Texture::CreateTextureImageView(const VkDevice device, VkAllocationCallbacks* allocator) { 
+void Texture::CreateTextureImageView(const VkDevice device, const VkAllocationCallbacks* allocator) { 
     m_textureImageView = GraphicsUtility::CreateImageView(device, 
         allocator, m_textureImage, VK_FORMAT_R8G8B8A8_UNORM);
 
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void Texture::CreateTextureSampler(const VkDevice device, VkAllocationCallbacks* allocator) {
+void Texture::CreateTextureSampler(const VkDevice device, const VkAllocationCallbacks* allocator) {
     VkSamplerCreateInfo samplerInfo = {};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -114,7 +130,7 @@ void Texture::CreateTextureSampler(const VkDevice device, VkAllocationCallbacks*
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void Texture::CleanUp(const VkDevice device, VkAllocationCallbacks* allocator) {
+void Texture::CleanUp(const VkDevice device, const VkAllocationCallbacks* allocator) {
 
     SAFE_DESTROY_SAMPLER(device,m_textureSampler,allocator);
     SAFE_DESTROY_IMAGE_VIEW(device, m_textureImageView, allocator);

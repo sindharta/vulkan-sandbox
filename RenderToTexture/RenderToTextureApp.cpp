@@ -1,4 +1,4 @@
-#include "MultipleObjectsApp.h"
+#include "RenderToTextureApp.h"
 #include <GLFW/glfw3.h> //glfwGetRequiredInstanceExtensions
 
 #include <stdexcept> //std::runtime_error
@@ -49,19 +49,26 @@ const std::vector<TextureVertex> g_texVertices = {
     {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
 };
 
+const std::vector<TextureVertex> g_quadVertices = {
+    {{-1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{-1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
+    {{1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+    {{1.0f, -1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}}
+};
+
 const std::vector<uint16_t> g_indices = {
-    0, 1, 2, 2, 3, 0
+    0, 1, 2, 2, 3, 0,
 };
 
 //---------------------------------------------------------------------------------------------------------------------
 static void WindowResizedCallback(void* userData) {
-    MultipleObjectsApp* app = reinterpret_cast<MultipleObjectsApp*>(userData);
+    RenderToTextureApp* app = reinterpret_cast<RenderToTextureApp*>(userData);
     app->RequestToRecreateSwapChain();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 
-MultipleObjectsApp::MultipleObjectsApp() 
+RenderToTextureApp::RenderToTextureApp() 
     : m_instance(VK_NULL_HANDLE), m_surface(VK_NULL_HANDLE)
     , m_physicalDevice(VK_NULL_HANDLE), m_logicalDevice(VK_NULL_HANDLE)
     , m_graphicsQueue(VK_NULL_HANDLE)
@@ -70,6 +77,7 @@ MultipleObjectsApp::MultipleObjectsApp()
     , m_colorDescriptorSetLayout(VK_NULL_HANDLE)
     , m_texDescriptorSetLayout(VK_NULL_HANDLE)
     , m_commandPool(VK_NULL_HANDLE), m_currentFrame(0), m_recreateSwapChainRequested(false)
+    , m_quadDrawPipeline(nullptr)
     , m_texMesh(nullptr), m_colorMesh(nullptr)
     , m_texture(nullptr)
     , m_window(nullptr) 
@@ -78,7 +86,7 @@ MultipleObjectsApp::MultipleObjectsApp()
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void MultipleObjectsApp::Run() {    
+void RenderToTextureApp::Run() {    
     m_window = new Window();
     m_window->Init(WIDTH,HEIGHT, WindowResizedCallback, this);
 
@@ -97,7 +105,7 @@ void MultipleObjectsApp::Run() {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void MultipleObjectsApp::InitVulkan() {
+void RenderToTextureApp::InitVulkan() {
 
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -148,7 +156,12 @@ void MultipleObjectsApp::InitVulkan() {
         reinterpret_cast<const char*>(g_indices.data()), static_cast<uint32_t>(sizeof(g_indices[0]) * numIndices),
         numIndices
     );
-
+    m_quadMesh = new Shin::Mesh();
+    m_quadMesh->Init(m_physicalDevice, m_logicalDevice, g_allocator, m_commandPool,m_graphicsQueue, 
+        reinterpret_cast<const char*>(g_quadVertices.data()), static_cast<uint32_t>(sizeof(g_quadVertices[0]) * g_quadVertices.size()),
+        reinterpret_cast<const char*>(g_indices.data()), static_cast<uint32_t>(sizeof(g_indices[0]) * numIndices),
+        numIndices
+    );
 
     CreateSyncObjects();
 
@@ -167,11 +180,17 @@ void MultipleObjectsApp::InitVulkan() {
         m_drawObjects[i].SetPos(0,0,-1.0f + (0.5f * i));
     }
 
+    m_quadDrawObject.Init(m_logicalDevice, g_allocator,m_quadMesh,&m_offScreenPass);
+    m_smallerQuadDrawObject.Init(m_logicalDevice, g_allocator,m_quadMesh,&m_offScreenPass);
+    m_smallerQuadDrawObject.SetPos(0.75f,0.75f,0.f);
+    m_smallerQuadDrawObject.SetScale(0.25f);
+
     //Init pipelines
     m_drawPipelines.resize(NUM_DRAW_PIPELINES);
     for (uint32_t i = 0; i < NUM_DRAW_PIPELINES; ++i) {
         m_drawPipelines[i] = new Shin::DrawPipeline();
     }
+    m_quadDrawPipeline = new Shin::DrawPipeline();
 
     #define SHADER_PATH "../Shared/Shaders/"
 
@@ -189,6 +208,13 @@ void MultipleObjectsApp::InitVulkan() {
         ColorVertex::GetAttributeDescriptions(),
         m_colorDescriptorSetLayout
     );
+    m_quadDrawPipeline->Init( m_logicalDevice, g_allocator,
+        SHADER_PATH "Quad.vert.spv",
+        SHADER_PATH "Texture.frag.spv", 
+        TextureVertex::GetBindingDescription(),
+        TextureVertex::GetAttributeDescriptions(),
+        m_texDescriptorSetLayout
+    );
     #undef SHADER_PATH
 
     m_drawPipelines[0]->AddDrawObject(&m_drawObjects[0]);
@@ -196,6 +222,14 @@ void MultipleObjectsApp::InitVulkan() {
     m_drawPipelines[0]->AddDrawObject(&m_drawObjects[2]);
     m_drawPipelines[1]->AddDrawObject(&m_drawObjects[3]);
     m_drawPipelines[0]->AddDrawObject(&m_drawObjects[4]);
+    
+    m_quadDrawPipeline->AddDrawObject(&m_quadDrawObject);
+    m_quadDrawPipeline->AddDrawObject(&m_smallerQuadDrawObject);
+
+    const uint32_t OFFSCREEN_WIDTH =  800;
+    const uint32_t OFFSCREEN_HEIGHT = 600;
+
+    m_offScreenPass.Init(OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
 
     //Swap
     RecreateSwapChain();
@@ -203,7 +237,7 @@ void MultipleObjectsApp::InitVulkan() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void MultipleObjectsApp::RecreateSwapChain() {
+void RenderToTextureApp::RecreateSwapChain() {
     
     m_window->WaitInMinimizedState(); //Handle window minimization
 
@@ -217,14 +251,21 @@ void MultipleObjectsApp::RecreateSwapChain() {
     CreateFrameBuffers();
     CreateDescriptorPool();
 
-    //Recreate pipeline
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
+
+    //Offscreen Pass
+    m_offScreenPass.RecreateSwapChainObjects(m_physicalDevice,m_logicalDevice,g_allocator,numImages);
+
+    //Recreate pipeline
     const uint32_t numPipelines = static_cast<uint32_t>(m_drawPipelines.size());
     for (uint32_t i = 0; i < numPipelines; ++i) {
         m_drawPipelines[i]->RecreateSwapChainObjects(m_physicalDevice, m_logicalDevice, g_allocator, 
-            m_descriptorPool, numImages, m_renderPass, m_swapChainExtent            
+            m_descriptorPool, numImages, m_offScreenPass.GetRenderPass(), m_swapChainExtent            
         );
     }
+    m_quadDrawPipeline->RecreateSwapChainObjects(m_physicalDevice, m_logicalDevice, g_allocator, 
+        m_descriptorPool, numImages, m_renderPass, m_swapChainExtent   
+    );
 
     CreateCommandBuffers();
     m_recreateSwapChainRequested = false;
@@ -235,7 +276,7 @@ void MultipleObjectsApp::RecreateSwapChain() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void MultipleObjectsApp::PickPhysicalDevice()  {
+void RenderToTextureApp::PickPhysicalDevice()  {
     //Pick physical device
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
@@ -280,7 +321,7 @@ void MultipleObjectsApp::PickPhysicalDevice()  {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void MultipleObjectsApp::CreateLogicalDevice()  {
+void RenderToTextureApp::CreateLogicalDevice()  {
 
     //Create device queue for all required queues
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -328,7 +369,7 @@ void MultipleObjectsApp::CreateLogicalDevice()  {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void MultipleObjectsApp::CreateDescriptorSetLayout() {
+void RenderToTextureApp::CreateDescriptorSetLayout() {
     //Uniform buffer
     VkDescriptorSetLayoutBinding uboLayoutBinding = {};
     uboLayoutBinding.binding = 0;
@@ -374,7 +415,7 @@ void MultipleObjectsApp::CreateDescriptorSetLayout() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void MultipleObjectsApp::CreateCommandPool() {
+void RenderToTextureApp::CreateCommandPool() {
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.queueFamilyIndex = m_queueFamilyIndices.GetGraphicsIndex();
@@ -387,7 +428,7 @@ void MultipleObjectsApp::CreateCommandPool() {
 
 
 //---------------------------------------------------------------------------------------------------------------------
-void MultipleObjectsApp::CreateCommandBuffers() {
+void RenderToTextureApp::CreateCommandBuffers() {
     const uint32_t numFrameBuffers = static_cast<uint32_t>(m_swapChainFramebuffers.size());
     m_commandBuffers.resize(numFrameBuffers);
 
@@ -402,7 +443,7 @@ void MultipleObjectsApp::CreateCommandBuffers() {
     }
 
     //Starting command buffer recording
-    for (size_t i = 0; i < numFrameBuffers; ++i) {
+    for (uint32_t i = 0; i < numFrameBuffers; ++i) {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.flags = 0; // Optional
@@ -412,35 +453,57 @@ void MultipleObjectsApp::CreateCommandBuffers() {
             throw std::runtime_error("failed to begin recording command buffer!");
         }
 
-        //Starting a render pass
-        VkRenderPassBeginInfo renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = m_renderPass;
-        renderPassInfo.framebuffer = m_swapChainFramebuffers[i];
-        renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = m_swapChainExtent;
+        const VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
 
-        VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
-        renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clearColor; //to be used by VK_ATTACHMENT_LOAD_OP_CLEAR, when creating RenderPass
-        vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        //First render pass: Offscreen rendering
+        {
+            VkRenderPassBeginInfo renderPassInfo = {};
+            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            renderPassInfo.renderPass = m_offScreenPass.GetRenderPass();
+            renderPassInfo.framebuffer = m_offScreenPass.GetFrameBuffer(i);
+            renderPassInfo.renderArea.offset = {0, 0};
+            renderPassInfo.renderArea.extent = m_offScreenPass.GetExtent();
+            renderPassInfo.clearValueCount = 1;
+            renderPassInfo.pClearValues = &clearColor; //to be used by VK_ATTACHMENT_LOAD_OP_CLEAR, when creating RenderPass
+            vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        const uint32_t numPipelines = static_cast<uint32_t>(m_drawPipelines.size());
-        for (uint32_t j = 0; j < numPipelines; ++j) {
-            m_drawPipelines[j]->Bind(m_commandBuffers[i]);
-            m_drawPipelines[j]->DrawToCommandBuffer(m_commandBuffers[i], static_cast<uint32_t>(i));
+            const uint32_t numPipelines = static_cast<uint32_t>(m_drawPipelines.size());
+            for (uint32_t j = 0; j < numPipelines; ++j) {
+
+                m_drawPipelines[j]->Bind(m_commandBuffers[i]);
+                m_drawPipelines[j]->DrawToCommandBuffer(m_commandBuffers[i], static_cast<uint32_t>(i));
+            }
+            vkCmdEndRenderPass(m_commandBuffers[i]);
         }
 
-        vkCmdEndRenderPass(m_commandBuffers[i]);
+
+		{
+            //Second pass, render to screen
+			VkRenderPassBeginInfo renderPassInfo= {};
+            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassInfo.renderPass = m_renderPass;
+			renderPassInfo.framebuffer = m_swapChainFramebuffers[i];
+            renderPassInfo.renderArea.offset = {0, 0};
+            renderPassInfo.renderArea.extent = m_swapChainExtent;
+			renderPassInfo.clearValueCount = 1;
+			renderPassInfo.pClearValues = &clearColor;
+
+            vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+            m_quadDrawPipeline->Bind(m_commandBuffers[i]);
+            m_quadDrawPipeline->DrawToCommandBuffer(m_commandBuffers[i], static_cast<uint32_t>(i));
+            vkCmdEndRenderPass(m_commandBuffers[i]);
+        }
+
         if (vkEndCommandBuffer(m_commandBuffers[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
         }
+
     }
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void MultipleObjectsApp::CreateSyncObjects() {
+void RenderToTextureApp::CreateSyncObjects() {
 
     m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -466,7 +529,7 @@ void MultipleObjectsApp::CreateSyncObjects() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void MultipleObjectsApp::CreateSwapChain() {
+void RenderToTextureApp::CreateSwapChain() {
     //Decide parameters
     PhysicalDeviceSurfaceInfo surfaceInfo = QueryVulkanPhysicalDeviceSurfaceInfo(m_physicalDevice, m_surface);
     VkSurfaceCapabilitiesKHR& capabilities = surfaceInfo.Capabilities;
@@ -523,7 +586,7 @@ void MultipleObjectsApp::CreateSwapChain() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void MultipleObjectsApp::CreateImageViews() {
+void RenderToTextureApp::CreateImageViews() {
     //handles to swap chain images
     uint32_t imageCount = 0;
     vkGetSwapchainImagesKHR(m_logicalDevice, m_swapChain, &imageCount, nullptr);
@@ -547,7 +610,7 @@ void MultipleObjectsApp::CreateImageViews() {
 
 //Renderpass is an orchestration of image data.  It helps the GPU better understand when weÅfll be drawing, 
 //what we'll be drawing to, and what it should do between render passes.
-void MultipleObjectsApp::CreateRenderPass() {
+void RenderToTextureApp::CreateRenderPass() {
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = m_swapChainSurfaceFormat;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; //No multisampling
@@ -567,7 +630,16 @@ void MultipleObjectsApp::CreateRenderPass() {
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
 
-
+    //[Note-sin: 2019-11-14]
+    //- srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT.
+    //  This ensures to transition the image after it is acquired from the presentation engine.
+    //- srcAccessMask can be 0
+    //  1. We don't need to preserve previous results. Our rendering pipeline doesn't use the image 
+    //     before the transition (no reads or writes)
+    //  2. Works in conjunction with m_imageAvailableSemaphores in DrawFrame()
+    //     The acquisition semaphore already guarantees that any external accesses are made visible when the semaphore 
+    //     is signaled. This already ensures any memory accesses from the presentation engine are visible after the 
+    //     barrier.
     VkSubpassDependency dependency = {};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
@@ -594,10 +666,11 @@ void MultipleObjectsApp::CreateRenderPass() {
 //---------------------------------------------------------------------------------------------------------------------
 
 //A pool to create descriptor set to bind uniform buffers when drawing frame
-void MultipleObjectsApp::CreateDescriptorPool() {
+void RenderToTextureApp::CreateDescriptorPool() {
+    const uint32_t NUM_QUADS = 2;
 
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
-    const uint32_t maxDescriptorCount = static_cast<uint32_t>(m_drawObjects.size()) * numImages;
+    const uint32_t maxDescriptorCount = (static_cast<uint32_t>(m_drawObjects.size()) + NUM_QUADS) * numImages;
 
     std::array<VkDescriptorPoolSize, 2> poolSizes = {};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -621,7 +694,7 @@ void MultipleObjectsApp::CreateDescriptorPool() {
 
 //VkFrameBuffer is what maps the actual attachments (swap chain images) to a RenderPass. 
 //The attachment definition was defined when creating the RenderPass
-void MultipleObjectsApp::CreateFrameBuffers() {
+void RenderToTextureApp::CreateFrameBuffers() {
     const uint32_t numImageViews = static_cast<uint32_t>(m_swapChainImageViews.size());
     m_swapChainFramebuffers.resize(numImageViews);
     
@@ -651,7 +724,7 @@ void MultipleObjectsApp::CreateFrameBuffers() {
 #ifdef ENABLE_VULKAN_DEBUG
 
 //---------------------------------------------------------------------------------------------------------------------
-void MultipleObjectsApp::InitVulkanDebugInstance(const VkApplicationInfo& appInfo, const std::vector<const char*>& extensions) 
+void RenderToTextureApp::InitVulkanDebugInstance(const VkApplicationInfo& appInfo, const std::vector<const char*>& extensions) 
 {
     VkInstanceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -677,7 +750,7 @@ void MultipleObjectsApp::InitVulkanDebugInstance(const VkApplicationInfo& appInf
 
 //---------------------------------------------------------------------------------------------------------------------
 
-bool MultipleObjectsApp::CheckRequiredVulkanLayersAvailability(const std::vector<const char*> requiredLayers) {
+bool RenderToTextureApp::CheckRequiredVulkanLayersAvailability(const std::vector<const char*> requiredLayers) {
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
@@ -705,7 +778,7 @@ bool MultipleObjectsApp::CheckRequiredVulkanLayersAvailability(const std::vector
 #else
 
 //---------------------------------------------------------------------------------------------------------------------
-void MultipleObjectsApp::InitVulkanInstance(const VkApplicationInfo& appInfo, const std::vector<const char*>& extensions) {
+void RenderToTextureApp::InitVulkanInstance(const VkApplicationInfo& appInfo, const std::vector<const char*>& extensions) {
 
 
     VkInstanceCreateInfo createInfo = {};
@@ -724,7 +797,7 @@ void MultipleObjectsApp::InitVulkanInstance(const VkApplicationInfo& appInfo, co
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void MultipleObjectsApp::Loop() {
+void RenderToTextureApp::Loop() {
     while (m_window->Loop()) {
         DrawFrame();
     }
@@ -735,7 +808,7 @@ void MultipleObjectsApp::Loop() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void MultipleObjectsApp::DrawFrame() {
+void RenderToTextureApp::DrawFrame() {
     //The fence will sync CPU - GPU. Make sure that we are not processing the same frame in flight
     vkWaitForFences(m_logicalDevice, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -765,6 +838,9 @@ void MultipleObjectsApp::DrawFrame() {
     VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphores[m_currentFrame]};
 
     //2. Execute the command buffer with that image as attachment in the framebuffer
+    //[Note-sin: 2019-11-14] Waits for the stage that writes to the color attachment. 
+    //So theoretically the driver implementation can already start executing our vertex shader and such 
+    //while the image is not yet available. 
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
     UpdateVulkanUniformBuffers(imageIndex);
@@ -811,7 +887,7 @@ void MultipleObjectsApp::DrawFrame() {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void MultipleObjectsApp::UpdateVulkanUniformBuffers(uint32_t imageIndex) {
+void RenderToTextureApp::UpdateVulkanUniformBuffers(uint32_t imageIndex) {
 
     static const auto START_TIME = std::chrono::high_resolution_clock::now();
     const auto currentTime = std::chrono::high_resolution_clock::now();
@@ -822,11 +898,14 @@ void MultipleObjectsApp::UpdateVulkanUniformBuffers(uint32_t imageIndex) {
         m_drawObjects[i].Rotate(time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         m_drawObjects[i].UpdateUniformBuffers(m_logicalDevice, imageIndex);
     }
+
+    m_quadDrawObject.UpdateUniformBuffers(m_logicalDevice, imageIndex);
+    m_smallerQuadDrawObject.UpdateUniformBuffers(m_logicalDevice, imageIndex);
 }
 
 
 //---------------------------------------------------------------------------------------------------------------------
-void MultipleObjectsApp::PrintSupportedExtensions() {
+void RenderToTextureApp::PrintSupportedExtensions() {
     
     uint32_t extensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
@@ -839,7 +918,7 @@ void MultipleObjectsApp::PrintSupportedExtensions() {
 }
 //---------------------------------------------------------------------------------------------------------------------
 
-void MultipleObjectsApp::GetRequiredExtensionsInto(std::vector<const char*>* extensions) {
+void RenderToTextureApp::GetRequiredExtensionsInto(std::vector<const char*>* extensions) {
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -850,7 +929,7 @@ void MultipleObjectsApp::GetRequiredExtensionsInto(std::vector<const char*>* ext
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void MultipleObjectsApp::GetVulkanQueueFamilyPropertiesInto(const VkPhysicalDevice& device, 
+void RenderToTextureApp::GetVulkanQueueFamilyPropertiesInto(const VkPhysicalDevice& device, 
                                                      std::vector<VkQueueFamilyProperties>* queueFamilies) 
 {
     
@@ -863,7 +942,7 @@ void MultipleObjectsApp::GetVulkanQueueFamilyPropertiesInto(const VkPhysicalDevi
 
 //---------------------------------------------------------------------------------------------------------------------
 
-QueueFamilyIndices MultipleObjectsApp::QueryVulkanQueueFamilyIndices(const VkPhysicalDevice& device, 
+QueueFamilyIndices RenderToTextureApp::QueryVulkanQueueFamilyIndices(const VkPhysicalDevice& device, 
                                                                 const VkSurfaceKHR& surface) 
 {
     std::vector<VkQueueFamilyProperties> queueFamilyProperties;
@@ -893,7 +972,7 @@ QueueFamilyIndices MultipleObjectsApp::QueryVulkanQueueFamilyIndices(const VkPhy
 
 //---------------------------------------------------------------------------------------------------------------------
 
-PhysicalDeviceSurfaceInfo MultipleObjectsApp::QueryVulkanPhysicalDeviceSurfaceInfo(const VkPhysicalDevice& device, 
+PhysicalDeviceSurfaceInfo RenderToTextureApp::QueryVulkanPhysicalDeviceSurfaceInfo(const VkPhysicalDevice& device, 
                                                            const VkSurfaceKHR& surface) 
 {
     PhysicalDeviceSurfaceInfo details;
@@ -918,7 +997,7 @@ PhysicalDeviceSurfaceInfo MultipleObjectsApp::QueryVulkanPhysicalDeviceSurfaceIn
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-bool MultipleObjectsApp::CheckDeviceExtensionSupport(const VkPhysicalDevice& device, const std::vector<const char*>* extensions) {
+bool RenderToTextureApp::CheckDeviceExtensionSupport(const VkPhysicalDevice& device, const std::vector<const char*>* extensions) {
 
     uint32_t extensionCount;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
@@ -936,7 +1015,7 @@ bool MultipleObjectsApp::CheckDeviceExtensionSupport(const VkPhysicalDevice& dev
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-VkSurfaceFormatKHR MultipleObjectsApp::PickSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>* availableFormats) {
+VkSurfaceFormatKHR RenderToTextureApp::PickSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>* availableFormats) {
 
     for (const VkSurfaceFormatKHR& availableFormat : *availableFormats) {
         if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
@@ -953,7 +1032,7 @@ VkSurfaceFormatKHR MultipleObjectsApp::PickSwapSurfaceFormat(const std::vector<V
 
 //---------------------------------------------------------------------------------------------------------------------
 
-VkPresentModeKHR MultipleObjectsApp::PickSwapPresentMode(const std::vector<VkPresentModeKHR>* availableModes) {
+VkPresentModeKHR RenderToTextureApp::PickSwapPresentMode(const std::vector<VkPresentModeKHR>* availableModes) {
     for (const VkPresentModeKHR& availablePresentMode : *availableModes) {
         if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
             return availablePresentMode;
@@ -965,7 +1044,7 @@ VkPresentModeKHR MultipleObjectsApp::PickSwapPresentMode(const std::vector<VkPre
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void MultipleObjectsApp::CleanUp() {
+void RenderToTextureApp::CleanUp() {
 
     //Semaphores
     const uint32_t numSyncObjects = static_cast<uint32_t>(m_imageAvailableSemaphores.size());
@@ -983,13 +1062,7 @@ void MultipleObjectsApp::CleanUp() {
     SAFE_DESTROY_DESCRIPTOR_SET_LAYOUT(m_logicalDevice,m_texDescriptorSetLayout,g_allocator);
     SAFE_DESTROY_DESCRIPTOR_SET_LAYOUT(m_logicalDevice,m_colorDescriptorSetLayout,g_allocator);
 
-    //Draw Pipelines
-    const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());
-    for (uint32_t i = 0; i < numDrawPipelines; ++i) {
-        m_drawPipelines[i]->CleanUp(m_logicalDevice, g_allocator);
-        delete(m_drawPipelines[i]);
-    }
-    m_drawPipelines.clear();
+    m_offScreenPass.CleanUp(m_logicalDevice, g_allocator);
 
     //Draw Objects
     const uint32_t numDrawObjects = static_cast<uint32_t>(m_drawObjects.size());
@@ -997,11 +1070,24 @@ void MultipleObjectsApp::CleanUp() {
         m_drawObjects[i].CleanUp(m_logicalDevice, g_allocator);
     }
     m_drawObjects.clear();
+    m_quadDrawObject.CleanUp(m_logicalDevice, g_allocator);
+    m_smallerQuadDrawObject.CleanUp(m_logicalDevice, g_allocator);
+
+    //Draw Pipelines
+    const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());
+    for (uint32_t i = 0; i < numDrawPipelines; ++i) {
+        m_drawPipelines[i]->CleanUp(m_logicalDevice, g_allocator);
+        delete(m_drawPipelines[i]);
+    }
+    m_drawPipelines.clear();
+    SAFE_CLEANUP_PTR(m_logicalDevice, g_allocator, m_quadDrawPipeline);
+    
 
     //Textures
     SAFE_CLEANUP_PTR(m_logicalDevice, g_allocator, m_texture);
 
     //Model
+    SAFE_CLEANUP_PTR(m_logicalDevice, g_allocator, m_quadMesh);
     SAFE_CLEANUP_PTR(m_logicalDevice, g_allocator, m_texMesh);
     SAFE_CLEANUP_PTR(m_logicalDevice, g_allocator, m_colorMesh);
 
@@ -1036,18 +1122,18 @@ void MultipleObjectsApp::CleanUp() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void MultipleObjectsApp::CleanUpVulkanSwapChain() {
+void RenderToTextureApp::CleanUpVulkanSwapChain() {
 
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
     vkFreeCommandBuffers(m_logicalDevice, m_commandPool, static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
 
+    m_quadDrawPipeline->CleanUpSwapChainObjects(m_logicalDevice, g_allocator);
     const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());
     for (uint32_t i = 0; i < numDrawPipelines; ++i) {
         m_drawPipelines[i]->CleanUpSwapChainObjects(m_logicalDevice, g_allocator);
     }
-    
-    SAFE_DESTROY_DESCRIPTOR_POOL(m_logicalDevice, m_descriptorPool, g_allocator);
 
+    SAFE_DESTROY_DESCRIPTOR_POOL(m_logicalDevice, m_descriptorPool, g_allocator);
     for (VkFramebuffer& framebuffer : m_swapChainFramebuffers) {
         vkDestroyFramebuffer(m_logicalDevice, framebuffer, g_allocator);
     }
@@ -1057,8 +1143,6 @@ void MultipleObjectsApp::CleanUpVulkanSwapChain() {
         vkDestroyImageView(m_logicalDevice, imageView, g_allocator);
     }
     m_swapChainImages.clear();
-
-
 
     SAFE_DESTROY_RENDER_PASS(m_logicalDevice, m_renderPass, g_allocator);
     SAFE_DESTROY_SWAP_CHAIN(m_logicalDevice, m_swapChain, g_allocator);

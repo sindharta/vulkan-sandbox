@@ -10,24 +10,31 @@ namespace Shin {
 
 class Texture;
 class Mesh;
+class OffScreenPass;
 
 class DrawObject {
 
 public: 
     DrawObject();
     
-    void Init(const VkDevice device,VkAllocationCallbacks* allocator, const Mesh* m_mesh, const Texture* texture);
+    //[TODO-sin: 2019-11-14] Probably better to generalize so that we can add Texture, pass into a vector,
+    //and generate descriptor set dynamically
+    void Init(const VkDevice device,VkAllocationCallbacks* allocator, const Mesh* mesh, const Texture* texture);
+    void Init(const VkDevice device,VkAllocationCallbacks* allocator, const Mesh* mesh, const OffScreenPass* pass);
     void CleanUp(const VkDevice device,VkAllocationCallbacks* allocator);
     
     //Swap chain
     void RecreateSwapChainObjects(const VkPhysicalDevice physicalDevice, const VkDevice device, 
         VkAllocationCallbacks* allocator, const VkDescriptorPool descriptorPool, 
         const uint32_t numImages, const VkDescriptorSetLayout  descriptorSetLayout);
-    void CleanUpSwapChainObjects(const VkDevice device,VkAllocationCallbacks* allocator, const uint32_t numImages);
+    void CleanUpSwapChainObjects(const VkDevice device,VkAllocationCallbacks* allocator);
 
     inline void SetPos(const glm::vec3& pos);
     inline void SetPos(const float x, const float y, const float z);
     void SetProj(const float perspective);
+    void SetScale(const float scale);
+
+    void Rotate(const float degree, const glm::vec3& axis);
 
     void UpdateUniformBuffers(const VkDevice device, const uint32_t imageIndex);
 
@@ -42,10 +49,13 @@ private:
         const uint32_t numImages, const VkDescriptorSetLayout  descriptorSetLayout);
 
     glm::vec3                      m_pos;
+    glm::mat4                      m_scaleMat;
+    glm::mat4                      m_rotateMat;
     MVPUniform                     m_mvpMat;
     std::vector<VkDescriptorSet>   m_descriptorSets; //To bind uniform buffers. One per image in swap chain
 
     const Texture*                 m_texture;
+    const OffScreenPass*           m_offScreenPass;
     const Mesh*                    m_mesh;
 
     //These Uniform buffers will be updated in every DrawFrame
