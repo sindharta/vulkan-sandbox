@@ -224,7 +224,7 @@ void RenderToTextureApp::InitVulkan() {
     const uint32_t OFFSCREEN_WIDTH = 1024;
     const uint32_t OFFSCREEN_HEIGHT = 768;
 
-    m_offScreenPass.Init(m_physicalDevice, m_logicalDevice, g_allocator, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
+    m_offScreenPass.Init(OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
 
     //Swap
     RecreateSwapChain();
@@ -246,12 +246,16 @@ void RenderToTextureApp::RecreateSwapChain() {
     CreateFrameBuffers();
     CreateDescriptorPool();
 
-    //Recreate pipeline
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
+
+    //Offscreen Pass
+    m_offScreenPass.RecreateSwapChainObjects(m_physicalDevice,m_logicalDevice,g_allocator,numImages);
+
+    //Recreate pipeline
     const uint32_t numPipelines = static_cast<uint32_t>(m_drawPipelines.size());
     for (uint32_t i = 0; i < numPipelines; ++i) {
         m_drawPipelines[i]->RecreateSwapChainObjects(m_physicalDevice, m_logicalDevice, g_allocator, 
-            m_descriptorPool, numImages, m_renderPass, m_swapChainExtent            
+            m_descriptorPool, numImages, m_offScreenPass.GetRenderPass(), m_swapChainExtent            
         );
     }
     m_quadDrawPipeline->RecreateSwapChainObjects(m_physicalDevice, m_logicalDevice, g_allocator, 
@@ -434,7 +438,7 @@ void RenderToTextureApp::CreateCommandBuffers() {
     }
 
     //Starting command buffer recording
-    for (size_t i = 0; i < numFrameBuffers; ++i) {
+    for (uint32_t i = 0; i < numFrameBuffers; ++i) {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.flags = 0; // Optional
@@ -448,21 +452,21 @@ void RenderToTextureApp::CreateCommandBuffers() {
 
         //First render pass: Offscreen rendering
         {
-            //VkRenderPassBeginInfo renderPassInfo = {};
-            //renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            //renderPassInfo.renderPass = m_renderPass;
-            //renderPassInfo.framebuffer = m_swapChainFramebuffers[i];
-            //renderPassInfo.renderArea.offset = {0, 0};
-            //renderPassInfo.renderArea.extent = m_swapChainExtent;
-            //renderPassInfo.clearValueCount = 1;
-            //renderPassInfo.pClearValues = &clearColor; //to be used by VK_ATTACHMENT_LOAD_OP_CLEAR, when creating RenderPass
-            //vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+            VkRenderPassBeginInfo renderPassInfo = {};
+            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            renderPassInfo.renderPass = m_offScreenPass.GetRenderPass();
+            renderPassInfo.framebuffer = m_offScreenPass.GetFrameBuffer(i);
+            renderPassInfo.renderArea.offset = {0, 0};
+            renderPassInfo.renderArea.extent = m_offScreenPass.GetExtent();
+            renderPassInfo.clearValueCount = 1;
+            renderPassInfo.pClearValues = &clearColor; //to be used by VK_ATTACHMENT_LOAD_OP_CLEAR, when creating RenderPass
+            vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            //const uint32_t numPipelines = static_cast<uint32_t>(m_drawPipelines.size());
-            //for (uint32_t j = 0; j < numPipelines; ++j) {
-            //    m_drawPipelines[j]->DrawToCommandBuffer(m_commandBuffers[i], static_cast<uint32_t>(i));
-            //}
-            //vkCmdEndRenderPass(m_commandBuffers[i]);
+            const uint32_t numPipelines = static_cast<uint32_t>(m_drawPipelines.size());
+            for (uint32_t j = 0; j < numPipelines; ++j) {
+                m_drawPipelines[j]->DrawToCommandBuffer(m_commandBuffers[i], static_cast<uint32_t>(i));
+            }
+            vkCmdEndRenderPass(m_commandBuffers[i]);
         }
 
 
