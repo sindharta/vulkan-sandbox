@@ -49,5 +49,10 @@ class GraphicsUtility {
                                const VkDeviceSize size);
 
 
+        static void GetPhysicalDeviceUUIDInto(
+            VkInstance instance, VkPhysicalDevice phyDevice,
+            std::array<uint8_t, VK_UUID_SIZE>* deviceUUID
+        );
+
 };
     

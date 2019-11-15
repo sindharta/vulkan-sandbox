@@ -14,6 +14,8 @@
 
 #include "QueueFamilyIndices.h"
 
+#include "Cuda/CudaContext.h"
+
 class Window;
 
 namespace Shin {
@@ -31,6 +33,7 @@ public:
 
 private:
     void InitVulkan();
+    void InitCuda();
     void RecreateSwapChain();
 
 #ifdef ENABLE_VULKAN_DEBUG
@@ -79,7 +82,7 @@ private:
     static VkPresentModeKHR   PickSwapPresentMode(const std::vector<VkPresentModeKHR>* availableModes);
 
     void CleanUpVulkanSwapChain();
-
+    void CleanUpCuda();
 
     Window*                         m_window;
     Shin::OffScreenPass             m_offScreenPass;
@@ -128,6 +131,9 @@ private:
     QueueFamilyIndices  m_queueFamilyIndices;
     VkQueue             m_graphicsQueue;
     VkQueue             m_presentationQueue;
+
+    //Cuda
+    CudaContext         m_cudaContext;
 
     static const uint32_t WIDTH = 800;
     static const uint32_t HEIGHT = 600;

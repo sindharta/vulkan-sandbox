@@ -1,4 +1,5 @@
 #include "GraphicsUtility.h"
+#include <array>
 
 VkShaderModule GraphicsUtility::CreateShaderModule(const VkDevice device, const VkAllocationCallbacks* allocator, 
                                                  const std::vector<char>& code) {
@@ -298,5 +299,33 @@ void GraphicsUtility::CopyCPUDataToBuffer(const VkDevice device, const void* src
     vkMapMemory(device, destMemory, 0, size, 0, &data);
     memcpy(data, src, size);
     vkUnmapMemory(device, destMemory);
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void GraphicsUtility::GetPhysicalDeviceUUIDInto(VkInstance instance, VkPhysicalDevice phyDevice, std::array<uint8_t, VK_UUID_SIZE>* deviceUUID) 
+{
+    /*
+     * Query the physical device properties to obtain the device UUID.
+     * Note that successfully loading vkGetPhysicalDeviceProperties2KHR()
+     * requires the VK_KHR_get_physical_device_properties2 extension
+     * (which is an instance-level extension) to be enabled.
+     */
+    VkPhysicalDeviceIDPropertiesKHR deviceIDProps = {};
+    deviceIDProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES_KHR;
+
+    VkPhysicalDeviceProperties2KHR props = {};
+    props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR;
+    props.pNext = &deviceIDProps;
+
+    auto func = (PFN_vkGetPhysicalDeviceProperties2KHR) \
+        vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2KHR");
+    if (func == nullptr) {
+        throw std::runtime_error("Failed to load vkGetPhysicalDeviceProperties2KHR");
+    }
+
+    func(phyDevice, &props);
+
+    std::memcpy(deviceUUID->data(), deviceIDProps.deviceUUID, VK_UUID_SIZE);
 
 }

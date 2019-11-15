@@ -1,3 +1,5 @@
+//[TODO-Sin: 2019-11-15] Remove custom property sheet
+
 #include "NvEncodingApp.h"
 #include <GLFW/glfw3.h> //glfwGetRequiredInstanceExtensions
 
@@ -27,8 +29,9 @@ const std::vector<const char*> g_requiredVulkanLayers = {
 //There are two types of extensions: instance and device
 const std::vector<const char*> g_requiredInstanceExtensions = {
 #ifdef ENABLE_VULKAN_DEBUG
-    VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+    VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 #endif
+    VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, //vkGetPhysicalDeviceProperties2KHR
 };
 
 const std::vector<const char*> g_requiredDeviceExtensions = {
@@ -92,6 +95,7 @@ void NvEncodingApp::Run() {
 
     PrintSupportedExtensions();
     InitVulkan();
+    InitCuda();
 
 #ifdef ENABLE_VULKAN_DEBUG
     if (VK_SUCCESS != m_Debug.Init(m_instance)) {
@@ -1046,6 +1050,8 @@ VkPresentModeKHR NvEncodingApp::PickSwapPresentMode(const std::vector<VkPresentM
 
 void NvEncodingApp::CleanUp() {
 
+   
+
     //Semaphores
     const uint32_t numSyncObjects = static_cast<uint32_t>(m_imageAvailableSemaphores.size());
     for (size_t i = 0; i < numSyncObjects; i++) {
@@ -1146,4 +1152,33 @@ void NvEncodingApp::CleanUpVulkanSwapChain() {
 
     SAFE_DESTROY_RENDER_PASS(m_logicalDevice, m_renderPass, g_allocator);
     SAFE_DESTROY_SWAP_CHAIN(m_logicalDevice, m_swapChain, g_allocator);
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void NvEncodingApp::InitCuda() {
+    m_cudaContext.Init(m_instance, m_physicalDevice);
+
+    /*
+     * Obtain CUDA-side objects equivalent to the Vulkan images and semaphores
+     * created earlier.
+     */
+    for (int i = 0; i < NUM_BUFFERS; i++)
+    {
+        Cudaimage *cuImage = new Cudaimage(surfaces[i].vulkanImage,
+                                     surfaces[i].vulkanImageDeviceMemory);
+
+        Cudasema *cuSema = new Cudasema(surfaces[i].vulkanSemaphore);
+
+        surfaces[i].cudaImage = cuImage;
+        surfaces[i].cudaSemaphore = cuSema;
+
+        mapCUarrayToDeviceAlloc[cuImage->get()] = &surfaces[i];
+    }
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void NvEncodingApp::CleanUpCuda() {
+    m_cudaContext.CleanUp();
 }

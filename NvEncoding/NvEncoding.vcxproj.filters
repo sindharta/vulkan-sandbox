@@ -24,6 +24,9 @@
     <Filter Include="Shared\Src\Vertex">
       <UniqueIdentifier>{97e7a83a-aee2-457a-9389-76a32680a7cd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Cuda">
+      <UniqueIdentifier>{8bef46ec-7669-4d7a-ba53-7bc8bd5415ef}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -64,6 +67,9 @@
     </ClCompile>
     <ClCompile Include="NvEncodingApp.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Cuda\CudaContext.cpp">
+      <Filter>Source Files\Cuda</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -117,6 +123,9 @@
     </ClInclude>
     <ClInclude Include="NvEncodingApp.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\CudaContext.h">
+      <Filter>Source Files\Cuda</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
