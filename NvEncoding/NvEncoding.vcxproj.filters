@@ -71,6 +71,9 @@
     <ClCompile Include="Cuda\CudaContext.cpp">
       <Filter>Source Files\Cuda</Filter>
     </ClCompile>
+    <ClCompile Include="Cuda\CudaImage.cpp">
+      <Filter>Source Files\Cuda</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="QueueFamilyIndices.h">
@@ -125,6 +128,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Cuda\CudaContext.h">
+      <Filter>Source Files\Cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\CudaImage.h">
       <Filter>Source Files\Cuda</Filter>
     </ClInclude>
   </ItemGroup>

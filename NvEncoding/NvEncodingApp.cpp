@@ -20,6 +20,11 @@
 #include "Shin/Texture.h"
 #include "Shin/DrawPipeline.h"
 
+#ifdef _WIN32
+#include <Windows.h>
+#include <vulkan/vulkan_win32.h>
+#endif
+
 VkAllocationCallbacks* g_allocator = nullptr; //Always use default allocator
 
 const std::vector<const char*> g_requiredVulkanLayers = {
@@ -31,11 +36,23 @@ const std::vector<const char*> g_requiredInstanceExtensions = {
 #ifdef ENABLE_VULKAN_DEBUG
     VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 #endif
-    VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, //vkGetPhysicalDeviceProperties2KHR
+    VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, //vkGetPhysicalDeviceProperties2KHR()
+    VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,     //for VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME
+//    VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME
 };
 
 const std::vector<const char*> g_requiredDeviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME, //for the memory extension below
+
+#ifndef _WIN32
+    VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME,
+//    VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME
+#else
+    VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME, //vkGetMemoryWin32HandleKHR()
+//    VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME
+#endif
+
 };
 
 const std::vector<ColorVertex> g_colorVertices = {
@@ -94,8 +111,7 @@ void NvEncodingApp::Run() {
     m_window->Init(WIDTH,HEIGHT, WindowResizedCallback, this);
 
     PrintSupportedExtensions();
-    InitVulkan();
-    InitCuda();
+    InitVulkanAndCuda();
 
 #ifdef ENABLE_VULKAN_DEBUG
     if (VK_SUCCESS != m_Debug.Init(m_instance)) {
@@ -109,7 +125,7 @@ void NvEncodingApp::Run() {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void NvEncodingApp::InitVulkan() {
+void NvEncodingApp::InitVulkanAndCuda() {
 
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -235,6 +251,8 @@ void NvEncodingApp::InitVulkan() {
 
     m_offScreenPass.Init(OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
 
+    InitCuda();
+
     //Swap
     RecreateSwapChain();
 }
@@ -275,6 +293,10 @@ void NvEncodingApp::RecreateSwapChain() {
     m_recreateSwapChainRequested = false;
 
     m_imagesInFlight.resize(m_swapChainImages.size(), VK_NULL_HANDLE);
+
+    //Cuda
+    CreateCudaImages();
+
 
 }
 
@@ -502,6 +524,15 @@ void NvEncodingApp::CreateCommandBuffers() {
             throw std::runtime_error("failed to record command buffer!");
         }
 
+    }
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void NvEncodingApp::CreateCudaImages() {
+    const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
+    m_cudaImages.resize(numImages);
+    for (uint32_t i = 0; i < numImages; ++i) {
+        m_cudaImages[i].Init(m_logicalDevice, m_offScreenPass.GetTexture(i));
     }
 }
 
@@ -1130,8 +1161,14 @@ void NvEncodingApp::CleanUp() {
 
 void NvEncodingApp::CleanUpVulkanSwapChain() {
 
+
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
     vkFreeCommandBuffers(m_logicalDevice, m_commandPool, static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
+
+    for (uint32_t i = 0; i < numImages; ++i) {
+        m_cudaImages[i].CleanUp();
+    }
+    m_cudaImages.clear();
 
     m_quadDrawPipeline->CleanUpSwapChainObjects(m_logicalDevice, g_allocator);
     const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());
@@ -1158,24 +1195,6 @@ void NvEncodingApp::CleanUpVulkanSwapChain() {
 
 void NvEncodingApp::InitCuda() {
     m_cudaContext.Init(m_instance, m_physicalDevice);
-
-    /*
-     * Obtain CUDA-side objects equivalent to the Vulkan images and semaphores
-     * created earlier.
-     */
-    for (int i = 0; i < NUM_BUFFERS; i++)
-    {
-        Cudaimage *cuImage = new Cudaimage(surfaces[i].vulkanImage,
-                                     surfaces[i].vulkanImageDeviceMemory);
-
-        Cudasema *cuSema = new Cudasema(surfaces[i].vulkanSemaphore);
-
-        surfaces[i].cudaImage = cuImage;
-        surfaces[i].cudaSemaphore = cuSema;
-
-        mapCUarrayToDeviceAlloc[cuImage->get()] = &surfaces[i];
-    }
-
 }
 
 //---------------------------------------------------------------------------------------------------------------------

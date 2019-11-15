@@ -12,9 +12,12 @@
 #include "Shin/DrawObject.h"
 #include "Shin/OffScreenPass.h"
 
+//Cuda
+#include "Cuda/CudaContext.h"
+#include "Cuda/CudaImage.h"
+
 #include "QueueFamilyIndices.h"
 
-#include "Cuda/CudaContext.h"
 
 class Window;
 
@@ -32,7 +35,7 @@ public:
     inline void RequestToRecreateSwapChain();
 
 private:
-    void InitVulkan();
+    void InitVulkanAndCuda();
     void InitCuda();
     void RecreateSwapChain();
 
@@ -61,6 +64,7 @@ private:
     void CreateFrameBuffers();
     void CreateDescriptorPool();
     void CreateCommandBuffers();
+    void CreateCudaImages();
 
 
     void Loop(); 
@@ -133,7 +137,8 @@ private:
     VkQueue             m_presentationQueue;
 
     //Cuda
-    CudaContext         m_cudaContext;
+    CudaContext             m_cudaContext;
+    std::vector<CudaImage>  m_cudaImages;
 
     static const uint32_t WIDTH = 800;
     static const uint32_t HEIGHT = 600;

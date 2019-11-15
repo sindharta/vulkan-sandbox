@@ -175,6 +175,7 @@
     <ClCompile Include="..\Shared\Src\Shin\VulkanDebugMessenger.cpp" />
     <ClCompile Include="..\Shared\Src\Shin\Window.cpp" />
     <ClCompile Include="Cuda\CudaContext.cpp" />
+    <ClCompile Include="Cuda\CudaImage.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="NvEncodingApp.cpp" />
   </ItemGroup>
@@ -195,6 +196,7 @@
     <ClInclude Include="..\Shared\Src\Shin\VulkanDebugMessenger.h" />
     <ClInclude Include="..\Shared\Src\Shin\Window.h" />
     <ClInclude Include="Cuda\CudaContext.h" />
+    <ClInclude Include="Cuda\CudaImage.h" />
     <ClInclude Include="QueueFamilyIndices.h" />
     <ClInclude Include="NvEncodingApp.h" />
   </ItemGroup>
