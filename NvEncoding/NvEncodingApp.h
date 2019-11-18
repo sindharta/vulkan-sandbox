@@ -54,8 +54,6 @@ private:
 
     void CreateDescriptorSetLayout();
     void CreateCommandPool();
-    //void CreateVertexBuffer();
-    //void CreateIndexBuffer();
     void CreateSyncObjects();
     
     //Swap chain related
@@ -68,7 +66,7 @@ private:
     void CreateCudaImages();
 
     //Swap Chain cleaning up related
-    void CleanUpVulkanSwapChain();
+    void CleanUpSwapChain();
     void CleanUpCudaImages();
 
     void Loop(); 

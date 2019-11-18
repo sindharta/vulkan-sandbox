@@ -261,12 +261,12 @@ void NvEncodingApp::Init() {
 //---------------------------------------------------------------------------------------------------------------------
 
 void NvEncodingApp::RecreateSwapChain() {
-    
+
     m_window->WaitInMinimizedState(); //Handle window minimization
 
     vkDeviceWaitIdle(m_logicalDevice);
 
-    CleanUpVulkanSwapChain();
+    CleanUpSwapChain();
     CreateSwapChain();
     CreateImageViews();
     CreateRenderPass();
@@ -291,12 +291,14 @@ void NvEncodingApp::RecreateSwapChain() {
     );
 
     CreateCommandBuffers();
-    m_recreateSwapChainRequested = false;
 
-    m_imagesInFlight.resize(m_swapChainImages.size(), VK_NULL_HANDLE);
+    m_imagesInFlight.resize(numImages, VK_NULL_HANDLE);
 
     //Cuda
     CreateCudaImages();
+    m_nvEncoder.CreateBuffers(numImages);
+
+    m_recreateSwapChainRequested = false;
 
 }
 
@@ -897,6 +899,9 @@ void NvEncodingApp::DrawFrame() {
         throw std::runtime_error("failed to submit draw command buffer!");
     }
 
+    //Perform encoding here
+    m_nvEncoder.EncodeFrame(imageIndex);
+
     //3. Return the image to the swap chain for presentation. Wait for rendering to be finished
     VkPresentInfoKHR presentInfo = {};
     VkSwapchainKHR swapChains[] = {m_swapChain};
@@ -1081,8 +1086,6 @@ VkPresentModeKHR NvEncodingApp::PickSwapPresentMode(const std::vector<VkPresentM
 
 void NvEncodingApp::CleanUp() {
 
-   
-
     //Semaphores
     const uint32_t numSyncObjects = static_cast<uint32_t>(m_imageAvailableSemaphores.size());
     for (size_t i = 0; i < numSyncObjects; i++) {
@@ -1094,7 +1097,7 @@ void NvEncodingApp::CleanUp() {
     m_renderFinishedSemaphores.clear();
     m_inFlightFences.clear();
 
-    CleanUpVulkanSwapChain();
+    CleanUpSwapChain();
 
     SAFE_DESTROY_DESCRIPTOR_SET_LAYOUT(m_logicalDevice,m_texDescriptorSetLayout,g_allocator);
     SAFE_DESTROY_DESCRIPTOR_SET_LAYOUT(m_logicalDevice,m_colorDescriptorSetLayout,g_allocator);
@@ -1159,12 +1162,13 @@ void NvEncodingApp::CleanUp() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void NvEncodingApp::CleanUpVulkanSwapChain() {
+void NvEncodingApp::CleanUpSwapChain() {
 
 
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
     vkFreeCommandBuffers(m_logicalDevice, m_commandPool, static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
 
+    m_nvEncoder.DestroyBuffers();
     CleanUpCudaImages();
 
     m_quadDrawPipeline->CleanUpSwapChainObjects(m_logicalDevice, g_allocator);

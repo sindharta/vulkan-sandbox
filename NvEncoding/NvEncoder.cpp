@@ -61,6 +61,29 @@ void NvEncoder::CleanUp() {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
+void NvEncoder::CreateBuffers(const uint32_t numBuffers) {
+    m_inputBuffers.resize(numBuffers, nullptr);
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void NvEncoder::DestroyBuffers() {
+    const uint32_t numBuffers = static_cast<uint32_t>(m_inputBuffers.size());
+    for (uint32_t i = 0; i < numBuffers; ++i)
+    {
+        if (m_inputBuffers[i])
+        {
+            m_nvenc.nvEncUnmapInputResource(m_encoder, m_inputBuffers[i]);
+        }
+    }
+    m_inputBuffers.clear();
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void NvEncoder::EncodeFrame(const uint32_t imageIndex) {
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 
 void NvEncoder::LoadNvEncApi() {
 
