@@ -24,7 +24,7 @@
 
 //---------------------------------------------------------------------------------------------------------------------
 
-NvEncoder::NvEncoder() : m_encoder(nullptr), m_numEncoderBuffer(0), m_isEncoderInitialized(false),
+NvEncoder::NvEncoder() : m_encoder(nullptr), m_isEncoderInitialized(false),
     m_width(0), m_height(0)
 {
 
@@ -43,7 +43,6 @@ void NvEncoder::Init(const NV_ENC_DEVICE_TYPE deviceType, void *device, const ui
     LoadNvEncApi();
 
     if (!m_nvenc.nvEncOpenEncodeSession) {
-m_numEncoderBuffer = 0;
         NVENC_THROW_ERROR("EncodeAPI not found", NV_ENC_ERR_NO_ENCODE_DEVICE);
     }
 
@@ -69,6 +68,15 @@ void NvEncoder::CleanUp() {
 void NvEncoder::CreateBuffers(const uint32_t numBuffers) {
     m_registeredInputResources.resize(numBuffers, nullptr);
     m_mappedInputBuffers.resize(numBuffers, nullptr);
+    m_bitStreamOutputBuffers.resize(numBuffers, nullptr);
+
+    for (uint32_t i = 0; i < numBuffers; ++i)
+    {
+        NV_ENC_CREATE_BITSTREAM_BUFFER createBitstreamBuffer = { NV_ENC_CREATE_BITSTREAM_BUFFER_VER };
+        NVENC_API_CALL(m_nvenc.nvEncCreateBitstreamBuffer(m_encoder, &createBitstreamBuffer));
+        m_bitStreamOutputBuffers[i] = createBitstreamBuffer.bitstreamBuffer;
+    }
+
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -88,6 +96,8 @@ void NvEncoder::DestroyBuffers() {
     }
     m_mappedInputBuffers.clear();
     m_registeredInputResources.clear();
+
+    DestroyBitstreamBuffer();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -118,10 +128,15 @@ void NvEncoder::EncodeFrame(const uint32_t imageIndex) {
     m_mappedInputBuffers[imageIndex] = mapInputResource.mappedResource;
 
 
-//    NVENCSTATUS nvStatus = DoEncode(m_mappedInputBuffers[bfrIdx], m_vBitstreamOutputBuffer[bfrIdx], pPicParams);
+    const NVENCSTATUS nvStatus = DoEncode(m_mappedInputBuffers[imageIndex], m_bitStreamOutputBuffers[imageIndex]);
+
+    if (NV_ENC_SUCCESS != nvStatus  && NV_ENC_ERR_NEED_MORE_INPUT != nvStatus) {
+        NVENC_THROW_ERROR("nvEncEncodePicture API failed", nvStatus);
+    }
 
     //Unmap
     NVENC_API_CALL(m_nvenc.nvEncUnmapInputResource(m_encoder, m_mappedInputBuffers[imageIndex]));
+
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -170,6 +185,7 @@ void NvEncoder::InitEncoder(const uint32_t width, const uint32_t height) {
     initializeParams.maxEncodeWidth = width;
     initializeParams.maxEncodeHeight = height;
     initializeParams.enableEncodeAsync = 0; // Output to GPU
+//    initializeParams.enableOutputInVidmem = true;
 
     //Always use preset config
     NV_ENC_PRESET_CONFIG presetConfig = { NV_ENC_PRESET_CONFIG_VER, { NV_ENC_CONFIG_VER } };
@@ -192,37 +208,23 @@ void NvEncoder::DestroyHWEncoder() {
         return;
     }
 
-#if defined(_WIN32)
-    const uint32_t num = static_cast<uint32_t>(m_completionEventVector.size());
-    for (uint32_t i = 0; i < num; i++)     {
-        if (m_completionEventVector[i]) {
-            NV_ENC_EVENT_PARAMS eventParams = { NV_ENC_EVENT_PARAMS_VER };
-            eventParams.completionEvent = m_completionEventVector[i];
-            m_nvenc.nvEncUnregisterAsyncEvent(m_encoder, &eventParams);
-            CloseHandle(m_completionEventVector[i]);
-        }
-    }
-    m_completionEventVector.clear();
-#endif
-
     DestroyBitstreamBuffer();
 
     m_nvenc.nvEncDestroyEncoder(m_encoder);
     m_encoder = nullptr;
 }
 
-
 //---------------------------------------------------------------------------------------------------------------------
 
 void NvEncoder::DestroyBitstreamBuffer() {
-    const uint32_t num = static_cast<uint32_t>(m_bitStreamOutputBufferVector.size());
+    const uint32_t num = static_cast<uint32_t>(m_bitStreamOutputBuffers.size());
     for (uint32_t i = 0; i < num; i++){
-        if (m_bitStreamOutputBufferVector[i]) {
-            m_nvenc.nvEncDestroyBitstreamBuffer(m_encoder, m_bitStreamOutputBufferVector[i]);
+        if (m_bitStreamOutputBuffers[i]) {
+            m_nvenc.nvEncDestroyBitstreamBuffer(m_encoder, m_bitStreamOutputBuffers[i]);
         }
     }
 
-    m_bitStreamOutputBufferVector.clear();
+    m_bitStreamOutputBuffers.clear();
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -244,4 +246,21 @@ NV_ENC_REGISTERED_PTR NvEncoder::RegisterResource(void *pBuffer, const NV_ENC_IN
     return registerResource.registeredResource;
 }
 
+//---------------------------------------------------------------------------------------------------------------------
+
+NVENCSTATUS NvEncoder::DoEncode(NV_ENC_INPUT_PTR inputBuffer, NV_ENC_OUTPUT_PTR outputBuffer) 
+{
+    NV_ENC_PIC_PARAMS picParams = {};
+    picParams.version = NV_ENC_PIC_PARAMS_VER;
+    picParams.pictureStruct = NV_ENC_PIC_STRUCT_FRAME;
+    picParams.inputBuffer = inputBuffer;
+    picParams.bufferFmt = NV_ENC_BUFFER_FORMAT_ARGB;
+    picParams.inputWidth = m_width;
+    picParams.inputHeight = m_height;
+    picParams.outputBitstream = outputBuffer;
+    const NVENCSTATUS nvStatus = m_nvenc.nvEncEncodePicture(m_encoder, &picParams);
+
+    return nvStatus; 
+
+}
 
