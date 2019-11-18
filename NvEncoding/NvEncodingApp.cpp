@@ -111,7 +111,7 @@ void NvEncodingApp::Run() {
     m_window->Init(WIDTH,HEIGHT, WindowResizedCallback, this);
 
     PrintSupportedExtensions();
-    InitVulkanAndCuda();
+    Init();
 
 #ifdef ENABLE_VULKAN_DEBUG
     if (VK_SUCCESS != m_Debug.Init(m_instance)) {
@@ -125,7 +125,7 @@ void NvEncodingApp::Run() {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void NvEncodingApp::InitVulkanAndCuda() {
+void NvEncodingApp::Init() {
 
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -251,7 +251,7 @@ void NvEncodingApp::InitVulkanAndCuda() {
 
     m_offScreenPass.Init(OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
 
-    InitCuda();
+    InitCudaAndNvCodec();
 
     //Swap
     RecreateSwapChain();
@@ -1193,11 +1193,13 @@ void NvEncodingApp::CleanUpVulkanSwapChain() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void NvEncodingApp::InitCuda() {
+void NvEncodingApp::InitCudaAndNvCodec() {
     m_cudaContext.Init(m_instance, m_physicalDevice);
+    m_nvEncoder.Init(NV_ENC_DEVICE_TYPE_CUDA, m_cudaContext.GetContext());
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void NvEncodingApp::CleanUpCuda() {
+void NvEncodingApp::CleanUpCudaAndNvCodec() {
+    m_nvEncoder.CleanUp();
     m_cudaContext.CleanUp();
 }

@@ -74,6 +74,12 @@
     <ClCompile Include="Cuda\CudaImage.cpp">
       <Filter>Source Files\Cuda</Filter>
     </ClCompile>
+    <ClCompile Include="NvEncoder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="NvEncException.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="QueueFamilyIndices.h">
@@ -132,6 +138,12 @@
     </ClInclude>
     <ClInclude Include="Cuda\CudaImage.h">
       <Filter>Source Files\Cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="NvEncoder.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NvEncException.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

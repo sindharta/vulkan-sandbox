@@ -12,9 +12,10 @@
 #include "Shin/DrawObject.h"
 #include "Shin/OffScreenPass.h"
 
-//Cuda
+//Cuda and NvEncoder
 #include "Cuda/CudaContext.h"
 #include "Cuda/CudaImage.h"
+#include "NvEncoder.h"
 
 #include "QueueFamilyIndices.h"
 
@@ -35,8 +36,8 @@ public:
     inline void RequestToRecreateSwapChain();
 
 private:
-    void InitVulkanAndCuda();
-    void InitCuda();
+    void Init();
+    void InitCudaAndNvCodec();
     void RecreateSwapChain();
 
 #ifdef ENABLE_VULKAN_DEBUG
@@ -86,7 +87,7 @@ private:
     static VkPresentModeKHR   PickSwapPresentMode(const std::vector<VkPresentModeKHR>* availableModes);
 
     void CleanUpVulkanSwapChain();
-    void CleanUpCuda();
+    void CleanUpCudaAndNvCodec();
 
     Window*                         m_window;
     Shin::OffScreenPass             m_offScreenPass;
@@ -136,9 +137,10 @@ private:
     VkQueue             m_graphicsQueue;
     VkQueue             m_presentationQueue;
 
-    //Cuda
+    //Cuda and NvEncoder
     CudaContext             m_cudaContext;
     std::vector<CudaImage>  m_cudaImages;
+    NvEncoder               m_nvEncoder;
 
     static const uint32_t WIDTH = 800;
     static const uint32_t HEIGHT = 600;

@@ -78,25 +78,29 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>..\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
-    <IncludePath>..\Shared\Src;$(IncludePath)</IncludePath>
+    <IncludePath>E:\SDK\Video_Codec_SDK_9.1.23\include;..\Shared\Src;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\SDK\Video_Codec_SDK_9.1.23\Lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>..\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
-    <IncludePath>..\Shared\Src;$(IncludePath)</IncludePath>
+    <IncludePath>E:\SDK\Video_Codec_SDK_9.1.23\include;..\Shared\Src;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\SDK\Video_Codec_SDK_9.1.23\Lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>..\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
-    <IncludePath>..\Shared\Src;$(IncludePath)</IncludePath>
+    <IncludePath>E:\SDK\Video_Codec_SDK_9.1.23\include;..\Shared\Src;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\SDK\Video_Codec_SDK_9.1.23\Lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>..\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
-    <IncludePath>..\Shared\Src;$(IncludePath)</IncludePath>
+    <IncludePath>E:\SDK\Video_Codec_SDK_9.1.23\include;..\Shared\Src;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\SDK\Video_Codec_SDK_9.1.23\Lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -109,7 +113,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>cuda.lib;vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>nvencodeapi.lib;cuda.lib;vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -123,7 +127,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>cuda.lib;vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>nvencodeapi.lib;cuda.lib;vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -141,7 +145,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>cuda.lib;vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>nvencodeapi.lib;cuda.lib;vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -159,7 +163,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>cuda.lib;vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>nvencodeapi.lib;cuda.lib;vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -177,6 +181,8 @@
     <ClCompile Include="Cuda\CudaContext.cpp" />
     <ClCompile Include="Cuda\CudaImage.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="NvEncException.cpp" />
+    <ClCompile Include="NvEncoder.cpp" />
     <ClCompile Include="NvEncodingApp.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -197,6 +203,8 @@
     <ClInclude Include="..\Shared\Src\Shin\Window.h" />
     <ClInclude Include="Cuda\CudaContext.h" />
     <ClInclude Include="Cuda\CudaImage.h" />
+    <ClInclude Include="NvEncException.h" />
+    <ClInclude Include="NvEncoder.h" />
     <ClInclude Include="QueueFamilyIndices.h" />
     <ClInclude Include="NvEncodingApp.h" />
   </ItemGroup>

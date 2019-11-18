@@ -18,8 +18,10 @@ public:
 
     void Init(const VkInstance instance, VkPhysicalDevice physicalDevice);
     void CleanUp();
-
+    inline const CUcontext GetContext() const;
 private:
     CUcontext m_context;
 
 };
+
+inline const CUcontext CudaContext::GetContext() const { return m_context; }
