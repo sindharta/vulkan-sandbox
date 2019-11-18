@@ -296,7 +296,7 @@ void NvEncodingApp::RecreateSwapChain() {
 
     //Cuda
     CreateCudaImages();
-    m_nvEncoder.CreateBuffers(numImages);
+    SetupNvEncoderResources();
 
     m_recreateSwapChainRequested = false;
 
@@ -536,6 +536,16 @@ void NvEncodingApp::CreateCudaImages() {
     for (uint32_t i = 0; i < numImages; ++i) {
         m_cudaImages[i].Init(m_logicalDevice, m_offScreenPass.GetTexture(i));
     }
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void NvEncodingApp::SetupNvEncoderResources() {
+    const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
+    m_nvEncoder.CreateBuffers(numImages);
+    for (uint32_t i = 0; i < numImages; ++i) {
+        m_nvEncoder.RegisterInputResource(i, m_cudaImages[i].GetArray());
+    }
+
 }
 
 //---------------------------------------------------------------------------------------------------------------------

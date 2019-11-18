@@ -64,6 +64,7 @@ private:
     void CreateDescriptorPool();
     void CreateCommandBuffers();
     void CreateCudaImages();
+    void SetupNvEncoderResources();
 
     //Swap Chain cleaning up related
     void CleanUpSwapChain();

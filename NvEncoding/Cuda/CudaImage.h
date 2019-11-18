@@ -21,12 +21,15 @@ public:
     ~CudaImage();
     void Init(const VkDevice device, const Shin::Texture* texture);
     void CleanUp();
+    inline CUarray GetArray();
 
 
 private:
     CUarray m_array;
     CUmipmappedArray m_mipmapArray;
     CUexternalMemory m_extMemory;
-
-
 };
+
+//---------------------------------------------------------------------------------------------------------------------
+    inline CUarray CudaImage::GetArray() { return m_array; }
+

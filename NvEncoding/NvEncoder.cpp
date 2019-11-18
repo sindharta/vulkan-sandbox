@@ -1,6 +1,7 @@
 ﻿
 #include "NvEncoder.h"
 #include "NvEncException.h"
+#include <assert.h>
 
 //NVEncoder Macros
 #define NVENC_API_CALL( nvencAPI )                                                                                 \
@@ -23,7 +24,8 @@
 
 //---------------------------------------------------------------------------------------------------------------------
 
-NvEncoder::NvEncoder() : m_encoder(nullptr), m_numEncoderBuffer(0)
+NvEncoder::NvEncoder() : m_encoder(nullptr), m_numEncoderBuffer(0), m_isEncoderInitialized(false),
+    m_width(0), m_height(0)
 {
 
 }
@@ -57,30 +59,69 @@ m_numEncoderBuffer = 0;
 //---------------------------------------------------------------------------------------------------------------------
 
 void NvEncoder::CleanUp() {
+    DestroyBuffers();
     DestroyHWEncoder();
+    m_width = m_height = 0;
+
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void NvEncoder::CreateBuffers(const uint32_t numBuffers) {
-    m_inputBuffers.resize(numBuffers, nullptr);
+    m_registeredInputResources.resize(numBuffers, nullptr);
+    m_mappedInputBuffers.resize(numBuffers, nullptr);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void NvEncoder::DestroyBuffers() {
-    const uint32_t numBuffers = static_cast<uint32_t>(m_inputBuffers.size());
+    const uint32_t numBuffers = static_cast<uint32_t>(m_mappedInputBuffers.size());
     for (uint32_t i = 0; i < numBuffers; ++i)
     {
-        if (m_inputBuffers[i])
-        {
-            m_nvenc.nvEncUnmapInputResource(m_encoder, m_inputBuffers[i]);
+        if (m_mappedInputBuffers[i]) {
+            m_nvenc.nvEncUnmapInputResource(m_encoder, m_mappedInputBuffers[i]);
+            m_mappedInputBuffers[i] = nullptr;
+        }
+
+        if (m_registeredInputResources[i]) {
+            m_nvenc.nvEncUnregisterResource(m_encoder, m_registeredInputResources[i]);
+            m_registeredInputResources[i] = nullptr;
         }
     }
-    m_inputBuffers.clear();
+    m_mappedInputBuffers.clear();
+    m_registeredInputResources.clear();
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+void NvEncoder::RegisterInputResource(const uint32_t idx, CUarray input) {
+    assert(idx<m_registeredInputResources.size());
+    assert(nullptr == m_registeredInputResources[idx]); //we need to unregister this if we want to suppor reassigning
+
+    const NV_ENC_INPUT_RESOURCE_TYPE resourceType = NV_ENC_INPUT_RESOURCE_TYPE_CUDAARRAY;
+    const NV_ENC_BUFFER_FORMAT bufferFormat = NV_ENC_BUFFER_FORMAT_ARGB;
+
+    NV_ENC_REGISTERED_PTR registeredPtr = RegisterResource(input, resourceType, m_width, m_height, 
+        bufferFormat, NV_ENC_INPUT_IMAGE);
+
+    m_registeredInputResources[idx] = registeredPtr;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 void NvEncoder::EncodeFrame(const uint32_t imageIndex) {
 
+    if (!m_isEncoderInitialized) {
+        NVENC_THROW_ERROR("Encoder device not found", NV_ENC_ERR_NO_ENCODE_DEVICE);
+    }
+
+    //Map resources
+    NV_ENC_MAP_INPUT_RESOURCE mapInputResource = { NV_ENC_MAP_INPUT_RESOURCE_VER };
+    mapInputResource.registeredResource = m_registeredInputResources[imageIndex];
+    NVENC_API_CALL(m_nvenc.nvEncMapInputResource(m_encoder, &mapInputResource));
+    m_mappedInputBuffers[imageIndex] = mapInputResource.mappedResource;
+
+
+//    NVENCSTATUS nvStatus = DoEncode(m_mappedInputBuffers[bfrIdx], m_vBitstreamOutputBuffer[bfrIdx], pPicParams);
+
+    //Unmap
+    NVENC_API_CALL(m_nvenc.nvEncUnmapInputResource(m_encoder, m_mappedInputBuffers[imageIndex]));
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -108,6 +149,8 @@ void NvEncoder::InitEncoder(const uint32_t width, const uint32_t height) {
     if (width <= 0 || height <= 0) {
         NVENC_THROW_ERROR("Invalid encoder width and height", NV_ENC_ERR_INVALID_PARAM);
     }
+    m_width = width;
+    m_height = height;
 
     //use default initialize params
     NV_ENC_INITIALIZE_PARAMS initializeParams = { NV_ENC_INITIALIZE_PARAMS_VER };
@@ -138,7 +181,7 @@ void NvEncoder::InitEncoder(const uint32_t width, const uint32_t height) {
     initializeParams.encodeConfig = &m_encodeConfig;
 
     NVENC_API_CALL(m_nvenc.nvEncInitializeEncoder(m_encoder, &initializeParams));
-
+    m_isEncoderInitialized = true;
 }
 
 
@@ -181,3 +224,24 @@ void NvEncoder::DestroyBitstreamBuffer() {
 
     m_bitStreamOutputBufferVector.clear();
 }
+
+//---------------------------------------------------------------------------------------------------------------------
+
+NV_ENC_REGISTERED_PTR NvEncoder::RegisterResource(void *pBuffer, const NV_ENC_INPUT_RESOURCE_TYPE eResourceType,
+    const uint32_t width, const uint32_t height, const NV_ENC_BUFFER_FORMAT bufferFormat, 
+    const NV_ENC_BUFFER_USAGE bufferUsage)
+{
+    NV_ENC_REGISTER_RESOURCE registerResource = { NV_ENC_REGISTER_RESOURCE_VER };
+    registerResource.resourceType = eResourceType;
+    registerResource.resourceToRegister = pBuffer;
+    registerResource.width = width;
+    registerResource.height = height;
+    //registerResource.pitch = pitch;
+    registerResource.bufferFormat = bufferFormat;
+    registerResource.bufferUsage = bufferUsage;
+    NVENC_API_CALL(m_nvenc.nvEncRegisterResource(m_encoder, &registerResource));
+
+    return registerResource.registeredResource;
+}
+
+
