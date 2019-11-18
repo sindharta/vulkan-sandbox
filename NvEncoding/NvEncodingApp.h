@@ -67,6 +67,9 @@ private:
     void CreateCommandBuffers();
     void CreateCudaImages();
 
+    //Swap Chain cleaning up related
+    void CleanUpVulkanSwapChain();
+    void CleanUpCudaImages();
 
     void Loop(); 
     void DrawFrame();
@@ -86,7 +89,6 @@ private:
     static VkSurfaceFormatKHR PickSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>* availableFormats);
     static VkPresentModeKHR   PickSwapPresentMode(const std::vector<VkPresentModeKHR>* availableModes);
 
-    void CleanUpVulkanSwapChain();
     void CleanUpCudaAndNvCodec();
 
     Window*                         m_window;

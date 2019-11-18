@@ -36,8 +36,8 @@ NvEncoder::~NvEncoder() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void NvEncoder::Init(NV_ENC_DEVICE_TYPE deviceType, void *device) {
-
+void NvEncoder::Init(const NV_ENC_DEVICE_TYPE deviceType, void *device, const uint32_t width, const uint32_t height)
+{
     LoadNvEncApi();
 
     if (!m_nvenc.nvEncOpenEncodeSession) {
@@ -50,6 +50,8 @@ m_numEncoderBuffer = 0;
     encodeSessionExParams.deviceType = deviceType;
     encodeSessionExParams.apiVersion = NVENCAPI_VERSION;
     NVENC_API_CALL(m_nvenc.nvEncOpenEncodeSessionEx(&encodeSessionExParams, &m_encoder));
+
+    InitEncoder(width, height);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -72,6 +74,50 @@ void NvEncoder::LoadNvEncApi() {
     m_nvenc = { NV_ENCODE_API_FUNCTION_LIST_VER };
     NVENC_API_CALL(NvEncodeAPICreateInstance(&m_nvenc));
 }
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void NvEncoder::InitEncoder(const uint32_t width, const uint32_t height) {
+    if (!m_encoder) {
+        NVENC_THROW_ERROR("Encoder Initialization failed", NV_ENC_ERR_NO_ENCODE_DEVICE);
+    }
+
+    if (width <= 0 || height <= 0) {
+        NVENC_THROW_ERROR("Invalid encoder width and height", NV_ENC_ERR_INVALID_PARAM);
+    }
+
+    //use default initialize params
+    NV_ENC_INITIALIZE_PARAMS initializeParams = { NV_ENC_INITIALIZE_PARAMS_VER };
+
+    initializeParams.version = NV_ENC_INITIALIZE_PARAMS_VER;
+    initializeParams.encodeWidth = width;
+    initializeParams.encodeHeight = height;
+    initializeParams.darWidth = width;
+    initializeParams.darHeight = height;
+    initializeParams.encodeGUID = NV_ENC_CODEC_H264_GUID;
+    initializeParams.presetGUID = NV_ENC_PRESET_LOW_LATENCY_HQ_GUID;
+    initializeParams.frameRateNum = 45;
+    initializeParams.frameRateDen = 1;
+    initializeParams.enablePTD = 1;
+    initializeParams.reportSliceOffsets = 0;
+    initializeParams.enableSubFrameWrite = 0;
+    initializeParams.maxEncodeWidth = width;
+    initializeParams.maxEncodeHeight = height;
+    initializeParams.enableEncodeAsync = 0; // Output to GPU
+
+    //Always use preset config
+    NV_ENC_PRESET_CONFIG presetConfig = { NV_ENC_PRESET_CONFIG_VER, { NV_ENC_CONFIG_VER } };
+    m_nvenc.nvEncGetEncodePresetConfig(m_encoder, NV_ENC_CODEC_H264_GUID, NV_ENC_PRESET_DEFAULT_GUID, &presetConfig);
+    memcpy(&m_encodeConfig, &presetConfig.presetCfg, sizeof(NV_ENC_CONFIG));
+    m_encodeConfig.version = NV_ENC_CONFIG_VER;
+    m_encodeConfig.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CONSTQP;
+    m_encodeConfig.rcParams.constQP = { 28, 31, 25 };
+    initializeParams.encodeConfig = &m_encodeConfig;
+
+    NVENC_API_CALL(m_nvenc.nvEncInitializeEncoder(m_encoder, &initializeParams));
+
+}
+
 
 //---------------------------------------------------------------------------------------------------------------------
 

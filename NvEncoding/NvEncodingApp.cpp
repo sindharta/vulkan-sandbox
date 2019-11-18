@@ -80,6 +80,10 @@ const std::vector<uint16_t> g_indices = {
     0, 1, 2, 2, 3, 0,
 };
 
+const uint32_t OFFSCREEN_TEXTURE_WIDTH =  800;
+const uint32_t OFFSCREEN_TEXTURE_HEIGHT = 600;
+
+
 //---------------------------------------------------------------------------------------------------------------------
 static void WindowResizedCallback(void* userData) {
     NvEncodingApp* app = reinterpret_cast<NvEncodingApp*>(userData);
@@ -246,10 +250,7 @@ void NvEncodingApp::Init() {
     m_quadDrawPipeline->AddDrawObject(&m_quadDrawObject);
     m_quadDrawPipeline->AddDrawObject(&m_smallerQuadDrawObject);
 
-    const uint32_t OFFSCREEN_WIDTH =  800;
-    const uint32_t OFFSCREEN_HEIGHT = 600;
-
-    m_offScreenPass.Init(OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
+    m_offScreenPass.Init(OFFSCREEN_TEXTURE_WIDTH, OFFSCREEN_TEXTURE_HEIGHT);
 
     InitCudaAndNvCodec();
 
@@ -296,7 +297,6 @@ void NvEncodingApp::RecreateSwapChain() {
 
     //Cuda
     CreateCudaImages();
-
 
 }
 
@@ -1165,10 +1165,7 @@ void NvEncodingApp::CleanUpVulkanSwapChain() {
     const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
     vkFreeCommandBuffers(m_logicalDevice, m_commandPool, static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
 
-    for (uint32_t i = 0; i < numImages; ++i) {
-        m_cudaImages[i].CleanUp();
-    }
-    m_cudaImages.clear();
+    CleanUpCudaImages();
 
     m_quadDrawPipeline->CleanUpSwapChainObjects(m_logicalDevice, g_allocator);
     const uint32_t numDrawPipelines = static_cast<uint32_t>(m_drawPipelines.size());
@@ -1192,10 +1189,21 @@ void NvEncodingApp::CleanUpVulkanSwapChain() {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
+void NvEncodingApp::CleanUpCudaImages() {
+    const uint32_t numImages = static_cast<uint32_t>(m_swapChainImages.size());
+    for (uint32_t i = 0; i < numImages; ++i) {
+        m_cudaImages[i].CleanUp();
+    }
+    m_cudaImages.clear();
+}
+
+
+//---------------------------------------------------------------------------------------------------------------------
 
 void NvEncodingApp::InitCudaAndNvCodec() {
     m_cudaContext.Init(m_instance, m_physicalDevice);
-    m_nvEncoder.Init(NV_ENC_DEVICE_TYPE_CUDA, m_cudaContext.GetContext());
+    m_nvEncoder.Init(NV_ENC_DEVICE_TYPE_CUDA, m_cudaContext.GetContext(), 
+        OFFSCREEN_TEXTURE_WIDTH, OFFSCREEN_TEXTURE_HEIGHT);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
