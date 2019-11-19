@@ -1,4 +1,16 @@
 #include "GraphicsUtility.h"
+#include <array>
+
+#ifdef _WIN32
+#include <Windows.h>
+#include <vulkan/vulkan_win32.h>
+#endif
+
+#ifndef _WIN32
+#define EXTERNAL_MEMORY_HANDLE_SUPPORTED_TYPE    VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR
+#else
+#define EXTERNAL_MEMORY_HANDLE_SUPPORTED_TYPE    VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR
+#endif
 
 VkShaderModule GraphicsUtility::CreateShaderModule(const VkDevice device, const VkAllocationCallbacks* allocator, 
                                                  const std::vector<char>& code) {
@@ -117,12 +129,12 @@ VkImageView  GraphicsUtility::CreateImageView(const VkDevice device, const VkAll
 
 //initialLayout must be either VK_IMAGE_LAYOUT_UNDEFINED or VK_IMAGE_LAYOUT_PREINITIALIZED
 //We use VK_IMAGE_LAYOUT_UNDEFINED here.
-void GraphicsUtility::CreateImage(const VkPhysicalDevice physicalDevice, const VkDevice device, 
+VkDeviceSize GraphicsUtility::CreateImage(const VkPhysicalDevice physicalDevice, const VkDevice device, 
     const VkAllocationCallbacks* allocator,
     const uint32_t width, const uint32_t height,
     const VkImageTiling tiling, const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties,
     const VkFormat format,
-    VkImage* image, VkDeviceMemory* imageMemory) 
+    VkImage* image, VkDeviceMemory* imageMemory, bool exportHandle) 
 {
 
     VkImageCreateInfo imageInfo = {};
@@ -152,11 +164,20 @@ void GraphicsUtility::CreateImage(const VkPhysicalDevice physicalDevice, const V
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = GraphicsUtility::FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
 
+    VkExportMemoryAllocateInfoKHR exportInfo = {};
+    if (exportHandle)  {
+        exportInfo.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR;
+        exportInfo.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR;
+        allocInfo.pNext = &exportInfo;
+    }
+
     if (vkAllocateMemory(device, &allocInfo, allocator, imageMemory) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate image memory!");
     }
 
     vkBindImageMemory(device, *image, *imageMemory, 0);
+
+    return memRequirements.size;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -300,3 +321,76 @@ void GraphicsUtility::CopyCPUDataToBuffer(const VkDevice device, const void* src
     vkUnmapMemory(device, destMemory);
 
 }
+
+//---------------------------------------------------------------------------------------------------------------------
+void GraphicsUtility::GetPhysicalDeviceUUIDInto(VkInstance instance, VkPhysicalDevice phyDevice, std::array<uint8_t, VK_UUID_SIZE>* deviceUUID) 
+{
+    /*
+     * Query the physical device properties to obtain the device UUID.
+     * Note that successfully loading vkGetPhysicalDeviceProperties2KHR()
+     * requires the VK_KHR_get_physical_device_properties2 extension
+     * (which is an instance-level extension) to be enabled.
+     */
+    VkPhysicalDeviceIDPropertiesKHR deviceIDProps = {};
+    deviceIDProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES_KHR;
+
+    VkPhysicalDeviceProperties2KHR props = {};
+    props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR;
+    props.pNext = &deviceIDProps;
+
+    auto func = (PFN_vkGetPhysicalDeviceProperties2KHR) \
+        vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2KHR");
+    if (func == nullptr) {
+        throw std::runtime_error("Failed to load vkGetPhysicalDeviceProperties2KHR");
+    }
+
+    func(phyDevice, &props);
+
+    std::memcpy(deviceUUID->data(), deviceIDProps.deviceUUID, VK_UUID_SIZE);
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+#ifndef _WIN32
+void* GraphicsUtility::GetExportHandle(const VkDevice device, const VkDeviceMemory memory)
+{
+    int fd = -1;
+
+    VkMemoryGetFdInfoKHR fdInfo = {};
+    fdInfo.sType = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR;
+    fdInfo.memory = memory;
+    fdInfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+
+    auto func = (PFN_vkGetMemoryFdKHR) \
+        vkGetDeviceProcAddr(device, "vkGetMemoryFdKHR");
+
+    if (!func ||
+        func(device, &fdInfo, &fd) != VK_SUCCESS) {
+        return nullptr;
+    }
+
+    return (void *)(uintptr_t)fd;
+}
+#else
+void* GraphicsUtility::GetExportHandle(const VkDevice device, const VkDeviceMemory memory)
+{
+    HANDLE handle = nullptr;
+
+    VkMemoryGetWin32HandleInfoKHR handleInfo = {};
+    handleInfo.sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
+    handleInfo.memory = memory;
+    handleInfo.handleType = EXTERNAL_MEMORY_HANDLE_SUPPORTED_TYPE;
+
+    auto func = (PFN_vkGetMemoryWin32HandleKHR) \
+        vkGetDeviceProcAddr(device, "vkGetMemoryWin32HandleKHR");
+
+    if (!func ||
+        func(device, &handleInfo, &handle) != VK_SUCCESS) {
+        return nullptr;
+    }
+
+    return (void *)handle;
+}
+#endif
+

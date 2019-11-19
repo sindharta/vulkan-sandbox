@@ -10,7 +10,7 @@
 namespace Shin {
 
 Texture::Texture() : m_textureImage(VK_NULL_HANDLE), m_textureImageMemory(VK_NULL_HANDLE)
-    , m_textureImageView(VK_NULL_HANDLE), m_textureSampler(VK_NULL_HANDLE)
+    , m_textureImageView(VK_NULL_HANDLE), m_textureSampler(VK_NULL_HANDLE), m_textureImageMemorySize(0)
 {
 
 }
@@ -30,15 +30,17 @@ void Texture::Init(const VkPhysicalDevice physicalDevice, const VkDevice device,
 void Texture::InitAsRenderTexture(const VkPhysicalDevice physicalDevice, const VkDevice device, 
     const VkAllocationCallbacks* allocator, const uint32_t width, const uint32_t height) 
 {
-    GraphicsUtility::CreateImage(physicalDevice,device,allocator, width, height,
+    const bool EXPORT_HANDLE = true;
+    m_textureImageMemorySize = GraphicsUtility::CreateImage(physicalDevice,device,allocator, width, height,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,VK_FORMAT_R8G8B8A8_UNORM, &m_textureImage,&m_textureImageMemory
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,VK_FORMAT_R8G8B8A8_UNORM, &m_textureImage,&m_textureImageMemory,
+        EXPORT_HANDLE
     );
+    m_extent = { width, height};
+
     CreateTextureImageView(device, allocator);
     CreateTextureSampler(device, allocator);
-
-
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -68,11 +70,12 @@ void Texture::CreateTextureImage(const VkPhysicalDevice physicalDevice, const Vk
 
     //Create Image buffer. 
     //VK_IMAGE_USAGE_SAMPLED_BIT: to allow access from the shader
-    GraphicsUtility::CreateImage(physicalDevice,device,allocator, texWidth, texHeight,
+    m_textureImageMemorySize = GraphicsUtility::CreateImage(physicalDevice,device,allocator, texWidth, texHeight,
         VK_IMAGE_TILING_OPTIMAL,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,VK_FORMAT_R8G8B8A8_UNORM, &m_textureImage,&m_textureImageMemory
     );
+    m_extent = { static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight)};
 
     //Transition the texture image to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
     GraphicsUtility::DoImageLayoutTransition(device, commandPool, queue, 
@@ -136,6 +139,8 @@ void Texture::CleanUp(const VkDevice device, const VkAllocationCallbacks* alloca
     SAFE_DESTROY_IMAGE_VIEW(device, m_textureImageView, allocator);
     SAFE_DESTROY_IMAGE(device, m_textureImage, allocator);
     SAFE_FREE_MEMORY(device, m_textureImageMemory, allocator);
+    m_textureImageMemorySize = 0;
+    m_extent = {0,0};
 }
 
 } //end namespace
