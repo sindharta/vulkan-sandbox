@@ -108,7 +108,7 @@ void NvEncoder::RegisterInputResource(const uint32_t idx, CUarray input) {
     const NV_ENC_INPUT_RESOURCE_TYPE resourceType = NV_ENC_INPUT_RESOURCE_TYPE_CUDAARRAY;
     const NV_ENC_BUFFER_FORMAT bufferFormat = NV_ENC_BUFFER_FORMAT_ARGB;
 
-    NV_ENC_REGISTERED_PTR registeredPtr = RegisterResource(input, resourceType, m_width, m_height, 
+    const NV_ENC_REGISTERED_PTR registeredPtr = RegisterResource(input, resourceType, m_width, m_height, m_width,
         bufferFormat, NV_ENC_INPUT_IMAGE);
 
     m_registeredInputResources[idx] = registeredPtr;
@@ -230,7 +230,7 @@ void NvEncoder::DestroyBitstreamBuffer() {
 //---------------------------------------------------------------------------------------------------------------------
 
 NV_ENC_REGISTERED_PTR NvEncoder::RegisterResource(void *pBuffer, const NV_ENC_INPUT_RESOURCE_TYPE eResourceType,
-    const uint32_t width, const uint32_t height, const NV_ENC_BUFFER_FORMAT bufferFormat, 
+    const uint32_t width, const uint32_t height, const uint32_t pitch, const NV_ENC_BUFFER_FORMAT bufferFormat, 
     const NV_ENC_BUFFER_USAGE bufferUsage)
 {
     NV_ENC_REGISTER_RESOURCE registerResource = { NV_ENC_REGISTER_RESOURCE_VER };
@@ -238,7 +238,7 @@ NV_ENC_REGISTERED_PTR NvEncoder::RegisterResource(void *pBuffer, const NV_ENC_IN
     registerResource.resourceToRegister = pBuffer;
     registerResource.width = width;
     registerResource.height = height;
-    //registerResource.pitch = pitch;
+    registerResource.pitch = pitch;
     registerResource.bufferFormat = bufferFormat;
     registerResource.bufferUsage = bufferUsage;
     NVENC_API_CALL(m_nvenc.nvEncRegisterResource(m_encoder, &registerResource));
@@ -264,3 +264,4 @@ NVENCSTATUS NvEncoder::DoEncode(NV_ENC_INPUT_PTR inputBuffer, NV_ENC_OUTPUT_PTR 
 
 }
 
+//---------------------------------------------------------------------------------------------------------------------
