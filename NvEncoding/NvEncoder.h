@@ -25,7 +25,8 @@ private:
     void DestroyBitstreamBuffer();
 
     NV_ENC_REGISTERED_PTR RegisterResource(void *pBuffer, const NV_ENC_INPUT_RESOURCE_TYPE eResourceType,
-        const uint32_t width, const uint32_t height, const NV_ENC_BUFFER_FORMAT bufferFormat, 
+        const uint32_t width, const uint32_t height, const uint32_t pitch, 
+        const NV_ENC_BUFFER_FORMAT bufferFormat, 
         const NV_ENC_BUFFER_USAGE bufferUsage);
 
     NVENCSTATUS DoEncode(NV_ENC_INPUT_PTR inputBuffer, NV_ENC_OUTPUT_PTR outputBuffer);
