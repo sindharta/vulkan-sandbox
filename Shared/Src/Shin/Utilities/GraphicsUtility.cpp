@@ -1,5 +1,6 @@
 #include "GraphicsUtility.h"
 #include <array>
+#include "Macros.h"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -82,10 +83,11 @@ void GraphicsUtility::CreateBuffer(const VkPhysicalDevice physicalDevice, const 
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void GraphicsUtility::CopyBuffer(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue,
+VkResult GraphicsUtility::CopyBuffer(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue,
                                  const VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) 
 {
-    VkCommandBuffer commandBuffer = BeginOneTimeCommandBuffer(device,commandPool);
+    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+    VULKAN_CHECK(BeginOneTimeCommandBufferInto(device, commandPool, &commandBuffer));
 
     //Start copy
     VkBufferCopy copyRegion = {};
@@ -94,7 +96,7 @@ void GraphicsUtility::CopyBuffer(const VkDevice device, const VkCommandPool comm
     copyRegion.size = size;
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-    EndAndSubmitOneTimeCommandBuffer(device,commandPool,queue,commandBuffer);
+    return EndAndSubmitOneTimeCommandBuffer(device,commandPool,queue,commandBuffer);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -182,12 +184,12 @@ VkDeviceSize GraphicsUtility::CreateImage(const VkPhysicalDevice physicalDevice,
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void GraphicsUtility::DoImageLayoutTransition(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, 
+VkResult GraphicsUtility::DoImageLayoutTransition(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, 
                                           VkImage image, VkFormat format, 
                                           VkImageLayout oldLayout, VkImageLayout newLayout) 
 { 
-
-    VkCommandBuffer commandBuffer = BeginOneTimeCommandBuffer(device, commandPool);
+    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+    VULKAN_CHECK(BeginOneTimeCommandBufferInto(device, commandPool, &commandBuffer));
 
     VkImageMemoryBarrier barrier = {};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -234,15 +236,16 @@ void GraphicsUtility::DoImageLayoutTransition(const VkDevice device, const VkCom
         1, &barrier
     );
 
-    EndAndSubmitOneTimeCommandBuffer(device, commandPool, queue, commandBuffer);
+    return EndAndSubmitOneTimeCommandBuffer(device, commandPool, queue, commandBuffer);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void GraphicsUtility::CopyBufferToImage(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue,
+VkResult GraphicsUtility::CopyBufferToImage(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue,
     const VkBuffer buffer, VkImage image, const uint32_t width, const uint32_t height)         
 {
-    VkCommandBuffer commandBuffer = BeginOneTimeCommandBuffer(device, commandPool);
+    VkCommandBuffer commandBuffer;
+    VULKAN_CHECK(BeginOneTimeCommandBufferInto(device, commandPool, &commandBuffer));
 
     VkBufferImageCopy region = {};
     region.bufferOffset = 0;
@@ -270,11 +273,13 @@ void GraphicsUtility::CopyBufferToImage(const VkDevice device, const VkCommandPo
         &region
     );
 
-    EndAndSubmitOneTimeCommandBuffer(device, commandPool, queue, commandBuffer);
+    return EndAndSubmitOneTimeCommandBuffer(device, commandPool, queue, commandBuffer);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-VkCommandBuffer GraphicsUtility::BeginOneTimeCommandBuffer(const VkDevice device, const VkCommandPool commandPool)   {
+VkResult GraphicsUtility::BeginOneTimeCommandBufferInto(const VkDevice device, const VkCommandPool commandPool, 
+    VkCommandBuffer* commandBuffer)
+{
     //Create a command buffer to copy
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -282,19 +287,19 @@ VkCommandBuffer GraphicsUtility::BeginOneTimeCommandBuffer(const VkDevice device
     allocInfo.commandPool = commandPool;
     allocInfo.commandBufferCount = 1;
 
-    VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+    vkAllocateCommandBuffers(device, &allocInfo, commandBuffer);
 
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; //used only once
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    VULKAN_CHECK(vkBeginCommandBuffer(*commandBuffer, &beginInfo));
 
-    return commandBuffer;
+    return VK_SUCCESS;
+
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-void GraphicsUtility::EndAndSubmitOneTimeCommandBuffer(const VkDevice device, const VkCommandPool commandPool, 
+VkResult GraphicsUtility::EndAndSubmitOneTimeCommandBuffer(const VkDevice device, const VkCommandPool commandPool, 
                                                        VkQueue queue, VkCommandBuffer commandBuffer) 
 {
     vkEndCommandBuffer(commandBuffer);
@@ -304,11 +309,11 @@ void GraphicsUtility::EndAndSubmitOneTimeCommandBuffer(const VkDevice device, co
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
 
-    vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(queue);
+    VULKAN_CHECK(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+    VULKAN_CHECK(vkQueueWaitIdle(queue));
 
     vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
-
+    return VK_SUCCESS;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
