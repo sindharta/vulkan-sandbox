@@ -16,7 +16,7 @@ class GraphicsUtility {
                                  const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties, 
                                  VkBuffer* buffer, VkDeviceMemory* bufferMemory);
 
-        static void CopyBuffer(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, 
+        static VkResult CopyBuffer(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, 
                                const VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
                                
 
@@ -30,17 +30,18 @@ class GraphicsUtility {
                                 const VkMemoryPropertyFlags properties, const VkFormat format,
                                 VkImage* image, VkDeviceMemory* imageMemory, bool exportHandle = false);
 
-        static void DoImageLayoutTransition(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, 
+        static VkResult DoImageLayoutTransition(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, 
                                           VkImage image, VkFormat format, 
                                           VkImageLayout oldLayout, VkImageLayout newLayout); 
         
-        static void CopyBufferToImage(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, 
+        static VkResult CopyBufferToImage(const VkDevice device, const VkCommandPool commandPool, const VkQueue queue, 
                                const VkBuffer buffer, VkImage image, const uint32_t width, const uint32_t height);
 
-        static VkCommandBuffer BeginOneTimeCommandBuffer(const VkDevice device, const VkCommandPool commandPool);
+        static VkResult BeginOneTimeCommandBufferInto(const VkDevice device, const VkCommandPool commandPool, 
+            VkCommandBuffer* commandBuffer);
 
         //Uses vkQueueWaitIdle to synchronize
-        static void  EndAndSubmitOneTimeCommandBuffer(const VkDevice device, const VkCommandPool commandPool, 
+        static VkResult EndAndSubmitOneTimeCommandBuffer(const VkDevice device, const VkCommandPool commandPool, 
                                                       const VkQueue queue, VkCommandBuffer commandBuffer);
 
         //The destMemory must have been created using 
